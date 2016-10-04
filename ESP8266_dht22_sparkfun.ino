@@ -28,14 +28,15 @@
 
 #include <ESP8266WiFi.h>
 #include "DHT.h"
-#define DHTPIN D5     // GPIO 2 pin of ESP8266
-#define DHTTYPE DHT22   // DHT 22  (AM2302)
+#define DHTPIN_bot D5     // D5 pin of ESP8266
+#define DHTPIN_top D3     // D3 pin of ESP8266
 const char* ssid     = "....";
 const char* password = "...";
 const char* host = "data.sparkfun.com";
 const char* publicKey = "XGYoZzy8ExFQYmQr3xRd";
 const char* privateKey = "...";
-DHT dht(DHTPIN, DHTTYPE, 30); // 30 is for cpu clock of esp8266 80Mhz
+DHT dht_bot(DHTPIN_bot, DHT22, 30); // 30 is for cpu clock of esp8266 80Mhz
+DHT dht_top(DHTPIN_top, DHT22, 30);
 void setup() {
   Serial.begin(115200);
   dht.begin();
@@ -59,21 +60,32 @@ void loop() {
   delay(5000);
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
+  float h_bot = dht_bot.readHumidity();
+  float h_top = dht_top.readHumidity();
+
   // Read temperature as Celsius
-  float t = dht.readTemperature();
+  float t_bot = dht_bot.readTemperature();
+  float t_top = dht_top.readTemperature();
+
   // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t)) {
+  if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
 
-  Serial.print("Humidity: ");
-  Serial.print(h);
+  Serial.print("Humidity bottom: ");
+  Serial.print(h_bot);
   Serial.print(" %\t");
-  Serial.print("Temperature: ");
-  Serial.print(t);
+  Serial.print("Temperature bottom: ");
+  Serial.print(t_bot);
+  Serial.println(" *C\t");
+  Serial.print("Humidity top: ");
+  Serial.print(h_top);
+  Serial.print(" %\t");
+  Serial.print("Temperature top: ");
+  Serial.print(t_top);
   Serial.print(" *C\t");
+            
   Serial.print("connecting to ");
   Serial.println(host);
   // Use WiFiClient class to create TCP connections
@@ -89,9 +101,9 @@ void loop() {
   url += "?private_key=";
   url += privateKey;
   url += "&temperature=";
-  url += t;
+  url += t_bot;
   url += "&humidity=";
-  url += h;
+  url += h_bot;
   Serial.print("Requesting URL: ");
   Serial.println(url);
   // This will send the request to the server
