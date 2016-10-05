@@ -23,7 +23,7 @@
     below. Or just customize this script to talk to other HTTP servers.
 
     Posts data e.g.:
-	https://data.sparkfun.com/input/aG8bAlQybziD5Qa780yY?private_key=KEPqaDKYqzsawdVNE8AD&hum_bot=0.67&hum_top=27.83&temp_bot=16.34&temp_top=29.74
+	https://data.sparkfun.com/input/aG8bAlQybziD5Qa780yY?private_key=KEPqaDKYqzsawdVNE8AD&hum_bot=50.7&hum_top=27.1&temp_bot=16.3&temp_top=29.7
  */
 
 #include <ESP8266WiFi.h>
