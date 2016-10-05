@@ -23,18 +23,14 @@
           var data = new google.visualization.DataTable();
 
           data.addColumn('datetime', 'Time');
-          data.addColumn('number', 'humidity top');
-          data.addColumn('number', 'temperature top');
-          data.addColumn('number', 'humidity bot');
-          data.addColumn('number', 'temperature bot');
+          data.addColumn('number', 'humidity');
+          data.addColumn('number', 'temperature');
 
           $.each(results, function (i, row) {
             data.addRow([
               (new Date(row.timestamp)),
-              parseFloat(row.hum_top),
-              parseFloat(row.temp_top),
-              parseFloat(row.hum_bot),
-              parseFloat(row.temp_bot)
+              parseFloat(row.humidity),
+              parseFloat(row.temperature)
             ]);
           });
 
