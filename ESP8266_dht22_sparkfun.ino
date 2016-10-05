@@ -101,13 +101,13 @@ void loop() {
   url += "?private_key=";
   url += privateKey;
   url += "&temp_top=";
-  url += t_top;
+  url += temp_top;
   url += "&hum_top=";
-  url += h_top;
+  url += hum_top;
   url += "&temp_bot=";
-  url += t_bot;
+  url += temp_bot;
   url += "&hum_bot=";
-  url += h_bot;
+  url += hum_bot;
   Serial.print("Requesting URL: ");
   Serial.println(url);
   // This will send the request to the server
