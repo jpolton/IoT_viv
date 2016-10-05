@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Smart Home</title>
+    <title>Smart Viv</title>
     <!-- EXTERNAL LIBS-->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://www.google.com/jsapi"></script>
@@ -26,14 +26,16 @@
           var gauge = new google.visualization.Gauge($('#gauge').get(0));
           var gaugeData = google.visualization.arrayToDataTable([
             ['Label', 'Value'],
-            ['Temp top', 0],
-            ['Temp bot', 0]
+            ['T TOP', 0],
+            ['T BOT', 0]
           ]);
           var options = {
             width: 600,
-            redFrom: 90, redTo: 100,
-            yellowFrom:80, yellowTo: 90,
-            greenFrom:70, greenTo: 80,
+	    min: 0, max: 45,
+	    redFrom: 40, redTo: 45,
+            yellowFrom:30, yellowTo: 40,
+            greenFrom:18, greenTo: 30,
+            majorTicks: ['0','5','10','15','20','25','30','35','40','45'],
             minorTicks: 5
           };
 
@@ -49,10 +51,10 @@
           var data = new google.visualization.DataTable();
 
           data.addColumn('datetime', 'Time');
-          data.addColumn('number', 'Temp bot');
-	  data.addColumn('number', 'Humidity bot');
-	  data.addColumn('number', 'Temp top');
-          data.addColumn('number', 'Humidity top');
+          data.addColumn('number', 'T bot');
+	  data.addColumn('number', 'H bot');
+	  data.addColumn('number', 'T top');
+          data.addColumn('number', 'H top');
 
           $.each(results, function (i, row) {
             data.addRow([
@@ -74,12 +76,12 @@
 
           var chart_temp = new google.visualization.LineChart($('#temperature').get(0));
           chart_temp.draw(temp_data, {
-            title: 'ESP8266 DHT22 Wifi Weather Station'
+            title: 'Temperature (C)'
           });
 
           var chart_hum = new google.visualization.LineChart($('#humidity').get(0));
           chart_hum.draw(hum_data, {
-            title: 'ESP8266 DHT22 Wifi Weather Station'
+            title: 'Humidity (%)'
           });
 
         });
@@ -96,8 +98,15 @@
 
   </head>
   <body style="text-align:center">
-    <h1 >Wireless Weather Monitoring</h1>
+      
+    <H1>Temperature and humidity logs</H1>
     <h2>Based on EPS8266, DHT22</h2>
+    Temperature and humidity are logged with a DHT22 on an ESP8266, Arduino IDE.<BR> They are posted to a data.sparkfun.com stream:<BR> http://data.sparkfun.com/streams/aG8bAlQybziD5Qa780yY 
+	<BR>
+	The data are plotted with the  google charts API at:<BR>
+	http://pcwww.liv.ac.uk/~jpolton/plots/esp8266_dht22_x2.html
+
+
     <div id="gauge" style="width:600px;margin-left:auto;margin-right:auto"></div>
     <div id="temperature" style="width: 100%;"></div>
     <div id="humidity" style="width: 100%;"></div>
