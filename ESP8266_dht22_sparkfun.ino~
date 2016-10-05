@@ -123,4 +123,3 @@ void loop() {
   Serial.println("closing connection");
   delay(600000); // Send data every 10 minutes
 }
-
