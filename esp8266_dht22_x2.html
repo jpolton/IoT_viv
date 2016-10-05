@@ -64,8 +64,21 @@
             ]);
           });
 
-          var chart = new google.visualization.LineChart($('#temperature').get(0));
-          chart.draw(data, {
+	  var temp_data = new google.visualization.DataView(data);
+	  temp_data.setColumns([0,1,3]); //here you set the columns you want to display
+				
+  	  var hum_data = new google.visualization.DataView(data);
+    	  hum_data.setColumns([0,2,4]); //here you set the columns you want to display
+
+
+
+          var chart_temp = new google.visualization.LineChart($('#temperature').get(0));
+          chart_temp.draw(temp_data, {
+            title: 'ESP8266 DHT22 Wifi Weather Station'
+          });
+
+          var chart_hum = new google.visualization.LineChart($('#humidity').get(0));
+          chart_hum.draw(hum_data, {
             title: 'ESP8266 DHT22 Wifi Weather Station'
           });
 
@@ -87,5 +100,6 @@
     <h2>Based on EPS8266, DHT22</h2>
     <div id="gauge" style="width:600px;margin-left:auto;margin-right:auto"></div>
     <div id="temperature" style="width: 100%;"></div>
+    <div id="humidity" style="width: 100%;"></div>
   </body>
 </html>
