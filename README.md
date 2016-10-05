@@ -9,5 +9,5 @@ _To do:_
 * The .ino file needs keys for sparkfun and example note
 * Edit html to plot extra data
 * Edit html with new key
-
+* Figure out how to revert unwanted edit in esp8266_dht22.html 
 
