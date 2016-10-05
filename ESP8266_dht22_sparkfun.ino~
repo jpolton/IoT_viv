@@ -5,9 +5,9 @@
 // PURPOSE: DHT22 send GET request to data.sparkfun stream
 //   BOARD: ESP8266 NodeMCU 1.0 (ESP-12E module)
 //FIRMWARE: Arduino IDE
-//     URL: http://data.sparkfun.com/streams/XGYoZzy8ExFQYmQr3xRd
-            http://pcwww.liv.ac.uk/~jpolton/plots/esp8266_dht22.html 
-//          /Users/jeff/Public/liv.ac.uk/plots/esp8266_dht22.html
+//     URL: https://data.sparkfun.com/streams/aG8bAlQybziD5Qa780yY
+            http://pcwww.liv.ac.uk/~jpolton/plots/esp8266_dht22_x2.html 
+//          /Users/jeff/Public/liv.ac.uk/plots/esp8266_dht22_x2.html
 // HISTORY:
 // 0.1.00 initial version: http://hpclab.blogspot.co.uk/2015/06/esp8266-based-wifi-weather-monitoring.html
 // 0.1.01 Edit to accommodate two sensors.
@@ -23,7 +23,7 @@
     below. Or just customize this script to talk to other HTTP servers.
 
     Posts data e.g.:
-      data.sparkfun.com/input/XGYoZzy8ExFQYmQr3xRd?private_key=1JvDzeYjNPSEb9ExzyAa&temperature=22.74&humidity=77.7      
+	https://data.sparkfun.com/input/aG8bAlQybziD5Qa780yY?private_key=KEPqaDKYqzsawdVNE8AD&hum_bot=0.67&hum_top=27.83&temp_bot=16.34&temp_top=29.74
  */
 
 #include <ESP8266WiFi.h>
