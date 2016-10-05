@@ -41,8 +41,8 @@
           gauge.draw(gaugeData,options);
 
           // Show real data
-          gaugeData.setValue(0,1,parseFloat(latest.temp_top));
-          gaugeData.setValue(1,1,parseFloat(latest.temp_bot));
+          gaugeData.setValue(0,1,parseFloat(latest.temp_t));
+          gaugeData.setValue(1,1,parseFloat(latest.temp_b));
 
           gauge.draw(gaugeData,options);
 
@@ -57,10 +57,10 @@
           $.each(results, function (i, row) {
             data.addRow([
               (new Date(row.timestamp)),
-              parseFloat(row.temp_bot),
-              parseFloat(row.hum_bot),
-              parseFloat(row.temp_top),
-              parseFloat(row.hum_top),
+              parseFloat(row.temp_b),
+              parseFloat(row.hum_b),
+              parseFloat(row.temp_t),
+              parseFloat(row.hum_t),
             ]);
           });
 
