@@ -32,7 +32,7 @@
             data.addRow([
               (new Date(row.timestamp)),
               parseFloat(row.hum_top),
-              parseFloat(row.temp_top),
+              parseFloat(row.temp_top)
               parseFloat(row.hum_bot),
               parseFloat(row.temp_bot)
             ]);
