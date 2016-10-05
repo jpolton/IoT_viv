@@ -7,4 +7,5 @@ This google charts html example supports multiple lines per chart.
 
 To-do:
 * Add private key to .ino file
+* Add network key to .ino file
 
