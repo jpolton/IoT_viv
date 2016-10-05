@@ -6,9 +6,7 @@ Added new html file from <script src="https://gist.github.com/jpolton/611681f366
 
 _To do:_
 * Set up a new data.sparkfun stream with variables: temp_bot, temp_top, hum_top, hum_bot. Note the order of appearance for later. Save the keys to Evernote.
-* The .ino file needs keys for sparkfun
-* Edit .ino file with these variable names
-* Edit .ino file to support another sensor.
+* The .ino file needs keys for sparkfun and example note
 * Edit html to plot extra data
 
 
