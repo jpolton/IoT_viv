@@ -12,8 +12,13 @@ To-do:
 * Assess stability of code
 * Add relay control of fan and heater
 
-Inputs: temperature from DHT22 sensor x2.
-Output: Relay control of heater and fan.
+Wiring:
+#define DHTPIN_bot D5     // D5 pin of ESP8266
+#define DHTPIN_top D3     // D3 pin of ESP8266
+
+Plan:
+Inputs- temperature from DHT22 sensor x2.
+Output- Relay control of heater and fan.
 Temperature is read at the top and bottom of the vivarium. The top temperature controls the heater. The lower temperature controls whether a fan should mix the warm air down.
 
 This code development is managed on github from <script src="https://gist.github.com/jpolton/611681f366708f26a97cca3895066dcf.js"></script>.
