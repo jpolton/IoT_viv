@@ -12,7 +12,10 @@
 // 0.1.00 initial version: http://hpclab.blogspot.co.uk/2015/06/esp8266-based-wifi-weather-monitoring.html
 // 0.1.01 Edit to accommodate two sensors.
 // 1.0.00 Tested
-// 2.0.00 Relay control added and tested. (Note that the LED on the fan seems to sometime rapidly flash when the fan is switched on.) 
+// 2.0.00 Relay control added and tested. (Note that the LED on the fan seems to sometime
+//        rapidly flash when the fan is switched on.) 
+// 3.0.00 Add light dependent resistor control to temperature thresholds (night and day target temperatures).
+//        only writes to web every (e.g. 20) loops.
 
 //  STATUS: WORKS. 
 /*
@@ -41,9 +44,14 @@ const char* privateKey = "....";
 int fan = D7;              // D7 pin for relay to fan
 int heater = D6;           // D6 pin for relay to heater
 const char* host = "data.sparkfun.com";
-float Ttop_threshold = 35.0; // Top temperature to activate heater
-float Tbot_threshold = 28.0; // Bottom temperature to active fan
-
+float Ttop_night = 25.0; // Top temperature to activate heater
+float Tbot_night = 18.0; // Bottom temperature to active fan
+float Ttop_day = 35.0; // Top temperature to activate heater
+float Tbot_day = 28.0; // Bottom temperature to active fan
+float Tbot_threshold = 0; // initialise
+float Ttop_threshold = 0;
+int lightPin = 0;  //define a pin for Photo resistor
+int count = 0; // loop counter: only GET request web post every 10 cycles
 DHT dht_bot(DHTPIN_bot, DHT22, 30); // 30 is for cpu clock of esp8266 80Mhz
 DHT dht_top(DHTPIN_top, DHT22, 30);
 
@@ -81,12 +89,17 @@ void loop() {
   // Read temperature as Celsius
   float t_bot = dht_bot.readTemperature();
   float t_top = dht_top.readTemperature();
-
-  // Check if any reads failed and exit early (to try again).
+ 
+  // Read LDR
+  int ldr = analogRead(lightPin);
+  
+  // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
+
+
 
   Serial.print("Humidity bottom: ");
   Serial.print(h_bot);
@@ -99,73 +112,100 @@ void loop() {
   Serial.print(" %\t");
   Serial.print("Temperature top: ");
   Serial.print(t_top);
-  Serial.print(" *C\t");
-            
+  Serial.println(" *C\t");
 
+  Serial.print("LDR: ");
+  Serial.println(ldr);
+            
+  // Check Light levels and switch between day and night settings
+  // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  if (ldr < 500) {
+    Tbot_threshold = Tbot_night;
+    Ttop_threshold = Ttop_night;
+  }
+  else {
+    Tbot_threshold = Tbot_day;
+    Ttop_threshold = Ttop_day;
+  }
+
+  Serial.print("T theshold top: ");
+  Serial.print(Ttop_threshold);
+  Serial.print(" %\t");
+  Serial.print("T threshold bottom: ");
+  Serial.print(Tbot_threshold);
+  Serial.println(" *C\t");
+    
   // Check temperatures and switch the relay on and off.
   // NOTE: relay LOW = ON / HIGH = OFF
   //////////////////////////////////////////////////////
   if (t_bot < Tbot_threshold) {
-    digitalWrite(fan,LOW);
-    //Serial.print(digitalRead(fan), 1);
+    digitalWrite(fan,LOW); // Fan ON
   }
   else {
-    digitalWrite(fan,HIGH);
+    digitalWrite(fan,HIGH); // Fan OFF
   }      
   if (t_top < Ttop_threshold) {
-    digitalWrite(heater,LOW);
-    //Serial.print(digitalRead(heater), 1);
+    digitalWrite(heater,LOW); // Heater ON
   }
   else {
-    digitalWrite(heater,HIGH);
+    digitalWrite(heater,HIGH); // Heater OFF
   }
 
 
 
 
   // Now do web stuff
+  // Only do every 20 loops
   ///////////////////
-  Serial.print("connecting to ");
-  Serial.println(host);
-  // Use WiFiClient class to create TCP connections
-  WiFiClient client;
-  const int httpPort = 80;
-  if (!client.connect(host, httpPort)) {
-    Serial.println("connection failed");
-    return;
+  if (count > 20) {
+    Serial.print("connecting to ");
+    Serial.println(host);
+    // Use WiFiClient class to create TCP connections
+    WiFiClient client;
+    const int httpPort = 80;
+    if (!client.connect(host, httpPort)) {
+      Serial.println("connection failed");
+      return;
+    }
+    // We now create a URI for the request. Use the variable names chosen for data.sparkfun
+    String url = "/input/";
+    url += publicKey;
+    url += "?private_key=";
+    url += privateKey;
+    url += "&temp_top=";
+    url += t_top;
+    url += "&hum_top=";
+    url += h_top;
+    url += "&temp_bot=";
+    url += t_bot;
+    url += "&hum_bot=";
+    url += h_bot;
+    Serial.print("Requesting URL: ");
+    Serial.println(url);
+    // This will send the request to the server
+    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                 "Host: " + host + "\r\n" +
+                 "Connection: close\r\n\r\n");
+    delay(10);
+    // Read all the lines of the reply from server and print them to Serial
+    while (client.available()) {
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+    Serial.println();
+    Serial.println("closing connection");
+
+    // reset counter
+    count = 0;
   }
-  // We now create a URI for the request. Use the variable names chosen for data.sparkfun
-  String url = "/input/";
-  url += publicKey;
-  url += "?private_key=";
-  url += privateKey;
-  url += "&temp_top=";
-  url += t_top;
-  url += "&hum_top=";
-  url += h_top;
-  url += "&temp_bot=";
-  url += t_bot;
-  url += "&hum_bot=";
-  url += h_bot;
-  Serial.print("Requesting URL: ");
-  Serial.println(url);
-  // This will send the request to the server
-  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" +
-               "Connection: close\r\n\r\n");
-  delay(10);
-  // Read all the lines of the reply from server and print them to Serial
-  while (client.available()) {
-    String line = client.readStringUntil('\r');
-    Serial.print(line);
-  }
-  Serial.println();
-  Serial.println("closing connection");
+  count++;
+  Serial.println(count);
 
 
 
-
-  delay(600000); // Send data every 10 minutes
-//  delay(30000); // Send data every 30s
+//  delay(600000); // 10 minutes
+  delay(30000); // Pause 30s
+//  delay(5000); // 5s
 }
 
