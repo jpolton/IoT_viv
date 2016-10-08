@@ -31,6 +31,8 @@
  */
 #include <ESP8266WiFi.h>
 #include "DHT.h"
+#include <SensorTransmitter.h>
+ 
 /* Header file for storing private keys */
 #include "ESP8266_dht22_sparkfun_keys.h"
 /* Either include a header file (above) with these private keys or fill them in here.
@@ -47,8 +49,8 @@ int heater = D6;           // D6 pin for relay to heater
 const char* host = "data.sparkfun.com";
 
 // Switch day/night mode either with LDR or internet time
-const char* switch = "LDR"; 
-//const char* switch = "internet"; 
+const char* switc = "LDR"; 
+//const char* switc = "internet"; 
 int hour = 0; // initialise internet clock hour variable
 
 float Ttop_night = 25.0; // Top temperature to activate heater
@@ -62,6 +64,9 @@ int count = 0; // loop counter: only GET request web post every 10 cycles
 DHT dht_bot(DHTPIN_bot, DHT22, 30); // 30 is for cpu clock of esp8266 80Mhz
 DHT dht_top(DHTPIN_top, DHT22, 30);
 
+// Initializes a ThermoHygroTransmitter on pin 2=D4 (first field), with "random" ID 0, on channel 2.
+ThermoHygroTransmitter transmitter(2, 0, 2); // pin2=D4 in ESP8266
+ 
 void setup() {
   Serial.begin(115200);
   dht_bot.begin();
@@ -123,11 +128,18 @@ void loop() {
 
   Serial.print("LDR: ");
   Serial.println(ldr);
+
+  // Transmit the top and bottom temperatures to the weather station display
+  /////////////////////////////////////////////////////////////////////////////
+  // Temperatures are passed at 10 times the real value,
+  // to avoid using floating point math.
+  transmitter.sendTempHumi(t_top*10, t_bot);
+
             
   // Check Light levels and switch between day and night settings
   // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
   //////////////////////////////////////////////////////////////////////////////////////////////
-  if (switch == "LDR") {		
+  if (switc == "LDR") {		
     if (ldr < 500) {
       Tbot_threshold = Tbot_night;
       Ttop_threshold = Ttop_night;
@@ -137,7 +149,7 @@ void loop() {
       Ttop_threshold = Ttop_day;
     }
   }
-  elseif (switch == "internet") {
+  else if (switc == "internet") {
     if (hour > 8 || hour < 20) {
       Tbot_threshold = Tbot_day;
       Ttop_threshold = Ttop_day;
@@ -219,8 +231,8 @@ void loop() {
     Serial.println("closing connection");
 
     // Get the clock hour
-    Serial.println(getTime());
-    hour = getTime();
+    //Serial.println(getTime());
+    //hour = getTime().toInt();
 
     // reset counter
     count = 0;
@@ -230,16 +242,15 @@ void loop() {
 
 
 
-//  delay(600000); // 10 minutes
   delay(30000); // Pause 30s
 //  delay(5000); // 5s
 }
 
 
-
+// Never called!
 String getTime() {
   WiFiClient client;
-  i=0;
+  int i=0;
   while (!!!client.connect("google.com", 80) & i < 10) {
     Serial.println("connection failed, retrying...");
     i++;
