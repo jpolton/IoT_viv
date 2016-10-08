@@ -16,9 +16,10 @@
 //        rapidly flash when the fan is switched on.) 
 // 3.0.00 Add light dependent resistor control to temperature thresholds (night and day target temperatures).
 //        only writes to web every (e.g. 20) loops.
-// 3.1.00 Add infrastructure to use either LDR or internet time based switching
+// 3.1.00 Add infrastructure to use either LDR or internet time based switching. Not working. Not activated.
+// 3.2.00 Add 433MHz transmission of temperatures to weather receiver.
 
-//  STATUS: v3.0.00 WORKS. 
+//  STATUS: v3.2.00 WORKS. 
 /*
     NOTES:
     This sketch sends data via HTTP GET requests to data.sparkfun.com service.
@@ -27,7 +28,7 @@
     below. Or just customize this script to talk to other HTTP servers.
 
     Posts data e.g.:
-	https://data.sparkfun.com/input/aG8bAlQybziD5Qa780yY?private_key=KEPqaDKYqzsawdVNE8AD&hum_bot=50.7&hum_top=27.1&temp_bot=16.3&temp_top=29.7
+	https://data.sparkfun.com/input/aG8bAlQybziD5Qa780yY?private_key=.....&hum_bot=50.7&hum_top=27.1&temp_bot=16.3&temp_top=29.7
  */
 #include <ESP8266WiFi.h>
 #include "DHT.h"
