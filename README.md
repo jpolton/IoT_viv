@@ -1,10 +1,13 @@
-# ESP8266_viv
-ESP8266 management and control of vivarium temperature.
+# IoT_viv
+ESP8266 or Arduino (nano) management and control of vivarium temperature.
+
+The nano version is the same except without the internet connectivity.
 
 Method:
 * The temperature and humidity data is measured on two DHT22 sensors using an ESP8266 flashed using the Arduino IDE.
-* A light dependent resistor reads the light levels and sets the threshold temperatures to day or night settings.
+* A light dependent resistor reads the light levels, or internet clock gets time, and sets the threshold temperatures to day or night settings.
 * A relay is switched depending on measured temperatures relative to a thresholds for turning on the heater and a fan. 
+* Temperatures are transmitter to neighbouring 433MHz RF receiver from IROX weather station. See https://bitbucket.org/fuzzillogic/433mhzforarduino/wiki/browse/
 * Every 20, or so 30s loops, The data are sent using a PUT request to a data.sparkfun.com data stream.
 * Google charts javascript, embedded in an html file, load and plot the sparkfun data stream. 
 
@@ -18,6 +21,7 @@ const char* privateKey = "....";
 
 To-do:
 * Assess stability of code
+* Memory laek or something with the 433MHz transmission code. The blue light stays on.
 
 Wiring:
 #define DHTPIN_bot D2     // D2 pin of ESP8266
