@@ -1,5 +1,7 @@
-# ESP8266_viv
-ESP8266 management and control of vivarium temperature.
+# IoT_viv
+ESP8266 or Arduino (nano) management and control of vivarium temperature.
+
+The nano version is the same except without the internet connectivity.
 
 Method:
 * The temperature and humidity data is measured on two DHT22 sensors using an ESP8266 flashed using the Arduino IDE.
