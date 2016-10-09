@@ -32,7 +32,7 @@
  */
 #include <ESP8266WiFi.h>
 #include "DHT.h"
-#include <SensorTransmitter.h>
+//#include <SensorTransmitter.h>
  
 /* Header file for storing private keys */
 #include "ESP8266_dht22_sparkfun_keys.h"
@@ -66,7 +66,7 @@ DHT dht_bot(DHTPIN_bot, DHT22, 30); // 30 is for cpu clock of esp8266 80Mhz
 DHT dht_top(DHTPIN_top, DHT22, 30);
 
 // Initializes a ThermoHygroTransmitter on pin 2=D4 (first field), with "random" ID 0, on channel 2.
-ThermoHygroTransmitter transmitter(2, 0, 2); // pin2=D4 in ESP8266
+//ThermoHygroTransmitter transmitter(2, 0, 2); // pin2=D4 in ESP8266
  
 void setup() {
   Serial.begin(115200);
@@ -134,7 +134,7 @@ void loop() {
   /////////////////////////////////////////////////////////////////////////////
   // Temperatures are passed at 10 times the real value,
   // to avoid using floating point math.
-  transmitter.sendTempHumi(t_top*10, t_bot);
+  //transmitter.sendTempHumi(t_top*10, t_bot);
 
             
   // Check Light levels and switch between day and night settings

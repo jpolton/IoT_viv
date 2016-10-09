@@ -19,6 +19,7 @@ const char* privateKey = "....";
 
 To-do:
 * Assess stability of code
+* Memory laek or something with the 433MHz transmission code. The blue light stays on.
 
 Wiring:
 #define DHTPIN_bot D2     // D2 pin of ESP8266
