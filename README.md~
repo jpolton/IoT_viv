@@ -43,3 +43,16 @@ Temperature is read at the top and bottom of the vivarium. The top temperature c
 
 This code development is managed on github from <script src="https://gist.github.com/jpolton/611681f366708f26a97cca3895066dcf.js"></script>.
 
+Contents:
+README.md:
+This file.
+
+ESP8266_dht22_sparkfun.ino:
+sketch for the ESP8266
+
+esp8266_dht22_x2.html:
+Corresponding html code to plot the data from two DHT22 sensors.
+
+nano_dht22_ldr_rf.ino
+Arduino nano version of the above, which does not publish data to the web.
+
