@@ -54,5 +54,7 @@ esp8266_dht22_x2.html:
 Corresponding html code to plot the data from two DHT22 sensors.
 
 nano_dht22_ldr_rf.ino
-Arduino nano version of the above, which does not publish data to the web.
 
+ESP8266_BMP_serial_plot.py
+Read streaming data from the serial port and plot graphs of temperature and pressure.
+Data stream created by ESP8266_BMP_serial_plot.ino
