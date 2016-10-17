@@ -41,10 +41,10 @@ plt.ion() # Tell matplotlib want ot interactive mode to plot data
 cnt=0
 
 fig, ax = plt.subplots()
-line, = ax.plot(numpy.random.randn(50))
+line, = ax.plot(range(50), numpy.random.randn(50))
 ax.lines.remove(line) # remove line from bg
 fig.canvas.draw()
-line, = ax.plot(101020*numpy.random.randn(50))
+line, = ax.plot(range(50), 101020*numpy.random.randn(50))
 
 plt.pause(1)
 
@@ -85,11 +85,14 @@ while ( cnt <= 50 ): # While loop that loops forever
 		pressArr.pop(0)
 		timeArr.pop(0)
 
-plt.ylim( numpy.min(pressArr), numpy.max(pressArr) )
-plt.xlim( numpy.min(timeArr), numpy.max(timeArr) )
+dp = numpy.max(pressArr) - numpy.min(pressArr)
+plt.ylim( numpy.min(pressArr)-dp*0.5, numpy.max(pressArr)+dp*0.5 )
+plt.xlim( -5, 0 )
 line, = ax.plot( timeArr, pressArr ) 
 
-while True: # While loop that loops forever
+cnt = 0
+tstart = time.time()
+while (time.time()-tstart < 30): # While loop that loops forever
 	while (arduinoData.inWaiting()==0): #Wait here until there is data
 		pass #do nothing
 	arduinoString = arduinoData.readline() #read the line of text from the serial port
@@ -98,18 +101,20 @@ while True: # While loop that loops forever
 	temp = float( dataArray[0])            #Convert second element to floating number and put in P
 	tempArr.append(temp)                     #Build our tempF array by appending temp readings
 	pressArr.append(press)                     #Building our pressure array by appending P readings
-	#timeArr.append(time.time()-tstart)
+	timeArr.append(time.time()-tstart)
 	cnt=cnt+1
 	tempArr.pop(0)                       #This allows us to just see the last 50 data points
 	pressArr.pop(0)
-	#timeArr.pop(0)
+	timeArr.pop(0)
+	#timeArr = [ timeArr[i] - timeArr[-1] for i in range(len(timeArr))]
 	#print press, len(pressArr), len(numpy.random.randn(50))
-	#line.set_xdata(timeArr)
+	line.set_xdata([ timeArr[i] - timeArr[-1] for i in range(len(timeArr))])
 	line.set_ydata(pressArr)
 	fig.canvas.draw()
 	fig.canvas.flush_events()
 
-
+print cnt
+arduinoData.close()
 
 
 
