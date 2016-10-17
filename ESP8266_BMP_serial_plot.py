@@ -27,7 +27,9 @@
 #$ ipython
 #>> run ESP8266_BMP_serial_plot.py
 #
-# This method produces plots at 30Hz. This is the speed you get with random data ==> rate is not limited by comms but by matplotlib method
+# COMMENTS
+# * This method produces plots at 30Hz. This is the speed you get with random data ==> rate is not limited by comms but by matplotlib method
+# * It would be good to plot both temperature and pressure, as relic code suggests.
 
 import serial # import the serial library
 import numpy
@@ -42,13 +44,9 @@ arduinoData = serial.Serial('/dev/tty.SLAB_USBtoUART',9600) # create serial obje
 plt.ion() # Tell matplotlib want ot interactive mode to plot data
 cnt=0
 
-fig, ax = plt.subplots()
-line, = ax.plot(range(50), numpy.random.randn(50))
-ax.lines.remove(line) # remove line from bg
-fig.canvas.draw()
-line, = ax.plot(range(50), 101020*numpy.random.randn(50))
+duration = 20  # Duration for sampling (s)
+N = 250 # number of data points stored in memory
 
-plt.pause(1)
 
 def makeFig(): # Create a function for the entire plot
 #	plt.ylim(15,25)                                 #Set y min and max values
@@ -70,7 +68,7 @@ while (arduinoData.inWaiting()==0): #Wait here until there is data
 arduinoString = arduinoData.readline() #read the line of text from the serial port
 
 tstart = time.time()
-while ( cnt <= 50 ): # While loop that loops forever
+while ( cnt <= N ): # While loop that loops forever
 	while (arduinoData.inWaiting()==0): #Wait here until there is data
 		pass #do nothing
 	arduinoString = arduinoData.readline() #read the line of text from the serial port
@@ -82,22 +80,31 @@ while ( cnt <= 50 ): # While loop that loops forever
 	timeArr.append(time.time()-tstart)
 	print press
 	cnt=cnt+1
-	if(cnt>50):                            #If you have 50 or more points, delete the first one from the array
+	if(cnt>N):                            #If you have 50 or more points, delete the first one from the array
 		tempArr.pop(0)                       #This allows us to just see the last 50 data points
 		pressArr.pop(0)
 		timeArr.pop(0)
 
+# Setting the plot up
+fig, ax = plt.subplots()
+line, = ax.plot(numpy.linspace(-float(N)/float(30), 0, N), numpy.random.randn(N))
+ax.lines.remove(line) # remove line from bg
+fig.canvas.draw()
+line, = ax.plot(range(N), 101020*numpy.random.randn(N))
+
+plt.pause(1)
+
 # Set up the plot details
 dp = numpy.max(pressArr) - numpy.min(pressArr)
 plt.ylim( numpy.min(pressArr)-dp*0.5, numpy.max(pressArr)+dp*0.5 )
-plt.xlim( -3, 0 )
+plt.xlim( -float(N)/float(30), 0 )
 plt.xlabel('Time since now (s)')
 plt.ylabel('Pressure (Pa)')
 plt.grid(True)
 line, = ax.plot( timeArr, pressArr ) 
 
 cnt = 0
-duration = 20
+
 tstart = time.time()
 while (time.time()-tstart < duration): # While loop that loops forever
 	while (arduinoData.inWaiting()==0): #Wait here until there is data
