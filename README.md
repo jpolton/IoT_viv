@@ -53,4 +53,8 @@ sketch for the ESP8266
 esp8266_dht22_x2.html:
 Corresponding html code to plot the data from two DHT22 sensors.
 
-nano_dht22_ldr_rf.ino
+nano_dht22_ldr_rf.ino:
+Code porting to arduino nano with:1) LDR activated day & night settings; 2) 433Mhz broadcast of temperatures to external LCD weather station.
+
+nano_dht22_ldr_oled_dimmer.ino:
+LDR switching between day and night settings. Output to OLED display instead of RF broadcast. AC Dimmer control of heater (IR light instead of ceramic heater). Dimmer conflicted with RF so RF is removed.
