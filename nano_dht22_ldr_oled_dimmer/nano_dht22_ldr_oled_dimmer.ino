@@ -1,15 +1,15 @@
-//    FILE: nano_dht22_ldr_rf_oled.ino
-//  AUTHOR: Jeff Polton
-// VERSION: 25.05.2021
-// PURPOSE: DHT22 temperature measurement, 
-//          decision controlled heater and fan switching, 
-//          oled display, dimmer control ...
-//   BOARD: Arduino Nano
+//      FILE: nano_dht22_ldr_rf_oled.ino
+//    AUTHOR: Jeff Polton
+//   VERSION: 25.05.2021
+//   PURPOSE: DHT22 temperature measurement, 
+//            decision controlled heater and fan switching, 
+//            oled display, dimmer control ...
+//     BOARD: Arduino Nano
 // PROCESSOR: ATmega328P (Old Bootloader)
 //PROGRAMMER: AVRISP mkII
-//FIRMWARE: Arduino IDE
-//     URL: 
-// HISTORY:
+//  FIRMWARE: Arduino IDE
+//       URL: 
+//   HISTORY:
 // 0.1.00 initial version: ESP8266_dht22_sparkfun.ino v3.2.0
 // 1.0.00 Cleaned out the ESP8266 WiFi commands
 // 1.0.01 Switch to IR heater controlled by Ttop. No fan
@@ -35,19 +35,26 @@
 
   Processor: ATmega328P (old bootloader)
 */
+
 #include <DHT.h>
 #include <DHT_U.h>
 #include "Dimmer.h"
 
 // Include Wire Library for I2C
+#include <SPI.h> //i2c and the display libraries
 #include <Wire.h>
  
 // Include Adafruit Graphics & OLED libraries
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &Wire);
+
+
 
 #define DHTPIN_bot 8
 #define DHTPIN_top 9
+#define OLED_WIDTH 128 // OLED display width, in pixels
+#define OLED_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET 5 // Reset pin not used but needed for library
 #define outputPin  12  // RBD dimmer
 #define zerocross  2 // RBD can not change on nano
@@ -72,8 +79,15 @@ DHT dht_top(DHTPIN_top, DHT22); //, 30);
 Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 
 // Reset pin not used but needed for library
-Adafruit_SSD1306 display(OLED_RESET);
+//Adafruit_SSD1306 display(OLED_RESET);
+//Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
+
+const int MAX = 60; // 60;
+int tempArray[ MAX ];
+int humArray[ MAX ];
+
+//********************************************************************
 void setup() {
   Serial.begin(115200);
   dht_bot.begin();
@@ -87,8 +101,31 @@ void setup() {
   // initialize OLED with I2C addr 0x3C
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   //display.startscrollright(0x00,0x0F);  
+
+  //Set the color - always use white despite actual display color
+  //display.setTextColor(WHITE);
+  display.setTextColor(WHITE,BLACK); // Draw white text. Avoid bad pixels? Not sure.
+  //Set the font size
+  display.setTextSize(1);
+
+  if ( SSD1306_LCDHEIGHT != 64 )
+  {
+    Serial.print("Height incorrect, please fix Adafruit_SSD1306.h!");
+  }
+
+
+  Serial.println(SSD1306_LCDHEIGHT );
+  Serial.println(SSD1306_LCDWIDTH );
+ 
+  // Initialise arrays
+  for ( int i = 0; i < MAX; i++ )
+  {
+    tempArray[ i ] = 10;
+    humArray[ i ] = 0;
+  }    
 }
 
+//********************************************************************
 void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, int Fan_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
@@ -129,6 +166,7 @@ void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, 
   Serial.println(Fan_bool);
   }
 
+//********************************************************************
 void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Heater_int, int Fan_bool, int clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
@@ -138,12 +176,8 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
   display.display();
   delay(1000);
 
-  //Set the color - always use white despite actual display color
-  //display.setTextColor(WHITE);
-  display.setTextColor(WHITE,BLACK); // Draw white text. Avoid bad pixels? Not sure.
-  //Set the font size
-  display.setTextSize(1);
   //Set the cursor coordinates
+  display.setTextSize(1);
   display.setCursor(0,0);
   display.print(" ldr:");
   display.print(round(ldr));
@@ -151,6 +185,8 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
   display.print(Heater_int);  
   display.print(" fan:");
   display.print(Fan_bool);  
+  
+  display.setTextSize(1);
   display.setCursor(0,10); 
   //display.print("   "); 
   display.print(t_top,1); // 1 decimal place
@@ -160,6 +196,7 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
   display.print(round(h_top));
   display.print(" %");
   
+  display.setTextSize(1);
   display.setCursor(0,20);
   //display.print("   "); 
   display.print(t_bot,1); // 1 decimal place
@@ -183,10 +220,101 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
     display.display();
   }
   else {
-    display.startscrollright(0x00,0x0F);  
+    display.startscrollright(0x00,0x07);   // right(0x00,0x0F);  
   }
 }
 
+
+//********************************************************************
+void storeTemp()
+{
+  int temp = dht_top.readTemperature();
+  int hum  = dht_top.readHumidity(); 
+  static int i = 0;
+  if ( isnan( ( int ) temp ) ) // if no data
+    if ( i < MAX ) 
+    {
+      tempArray[ i ] = 0;
+      humArray[ i ] = 0;
+      i++;
+    }
+    else
+    {
+      for ( int j = 0; j < MAX - 1; j++ )
+      {
+        tempArray[ j ] = tempArray[ j + 1 ];
+        tempArray[ MAX - 1 ] = 0;
+        humArray[ j ] = humArray[ j + 1 ];
+        humArray[ MAX - 1 ] = 0; 
+      }
+    }
+  else // else if data not nan
+  {
+    if ( i < MAX ) // add new datapoint
+    {
+      tempArray[ i ] = temp;
+      humArray[ i ] = hum;
+      i++;
+    }
+    else // shift data along array. Drop oldest value.
+    {
+      for ( int j = 0; j < MAX - 1; j++ )
+      {
+        tempArray[ j ] = tempArray[ j + 1 ];
+        tempArray[ MAX - 1 ] = temp;
+        humArray[ j ] = humArray[ j + 1 ];
+        humArray[ MAX - 1 ] = hum; 
+      }
+    }
+  }
+}
+
+//********************************************************************
+void drawTempGraph()
+{
+  drawGraph();
+  display.setCursor( 9, 54 );
+  display.print( "Temp:" );
+  display.print( ( float ) dht_top.readTemperature(), 1 );
+  display.println( "C" );
+  display.setCursor( 0, 0 );
+  display.write( 24 ); 
+  display.setCursor( 0, 8 );
+  display.print( 'T' ); 
+  for (int i = 0; i < MAX; i++ )
+    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - tempArray[ i ] * 2, 2, WHITE ); 
+}
+//********************************************************************
+void drawHumGraph()
+{
+  drawGraph();
+  display.setCursor( 9, 54 );
+  display.print( "Hum: " );
+  display.print( ( float ) dht_top.readHumidity(), 1 );
+  display.println( "%" );
+  display.setCursor( 0, 0 );
+  display.write( 24 ); 
+  display.setCursor( 0, 8 );
+  display.print( 'H' ); 
+  for (int i = 0; i < MAX; i++ )
+    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - humArray[ i ] / 2, 2, WHITE ); 
+}  
+//********************************************************************
+void drawGraph()
+{
+  display.drawPixel( 6, 13, WHITE ); 
+  display.drawPixel( 6, 23, WHITE ); 
+  display.drawPixel( 6, 33, WHITE ); 
+  display.drawPixel( 6, 43, WHITE ); 
+  display.drawPixel( 6, 53, WHITE ); 
+  display.drawPixel( 27, 62, WHITE ); 
+  display.drawPixel( 47, 62, WHITE ); 
+  display.drawPixel( 67, 62, WHITE ); 
+  display.drawPixel( 87, 62, WHITE ); 
+  display.drawPixel( 107, 62, WHITE ); 
+  display.drawFastVLine( 7, 0, 100, WHITE );
+  display.drawFastHLine( 7, 63, 120, WHITE );
+}
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -211,6 +339,9 @@ void loop() {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
+
+  // Store data
+  storeTemp();
 
             
   // Check Light levels and switch between day and night settings
@@ -282,6 +413,16 @@ void loop() {
   serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool);
 
 
-  delay(30000); // Pause 30s
+  delay(15000); // Pause 15s
+
+  // Display Temperature timeseries display
+  /////////////////////////////////////////////////////////////////////////////
+  display.stopscroll(); //right(0x00,0x0F);  
+  display.clearDisplay();
+  display.display();
+  drawTempGraph();
+  display.display();
+      
+  delay(15000); // Pause 15s
   //delay(5000); // 5s
 }
