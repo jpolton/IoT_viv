@@ -132,7 +132,7 @@ void setup() {
 }
 
 //********************************************************************
-void serial_disp(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool){
+void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
   Serial.print(F("Humidity bot: "));
@@ -173,7 +173,7 @@ void serial_disp(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, uint8_t clock_int){
+void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, uint8_t clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -343,7 +343,7 @@ void loop() {
   float t_top = dht_top.readTemperature();
  
   // Read LDR
-  int ldr = analogRead(LIGHTPIN);
+  uint16_t ldr = analogRead(LIGHTPIN);
   
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
