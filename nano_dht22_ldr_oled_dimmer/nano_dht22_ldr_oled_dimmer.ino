@@ -173,7 +173,7 @@ void serial_disp(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, int clock_int){
+void oled(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, uint8_t clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -359,14 +359,14 @@ void loop() {
   if (ldr < 700) { // 500
     Tbot_threshold = Tbot_night;
     Ttop_threshold = Ttop_night;
-    clock_int = 0; // reset daylight clock
+    uint8_t clock_int = 0; // reset daylight clock
     Serial.print(F("Clock:"));
     Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
   else {
     Tbot_threshold = Tbot_day;
     Ttop_threshold = Ttop_day;
-    clock_int = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
+    clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
     Serial.print(F("Clock:"));
     Serial.println(float(clock_int)*0.01,2); // 2 decimal place
 
