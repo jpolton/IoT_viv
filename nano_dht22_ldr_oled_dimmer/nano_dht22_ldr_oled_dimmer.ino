@@ -132,7 +132,7 @@ void setup() {
 }
 
 //********************************************************************
-void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool){
+void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool, uint8_t clock_int){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
   Serial.print(F("Humidity bot: "));
@@ -170,6 +170,9 @@ void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t 
 
   Serial.print(F("Fan:"));
   Serial.println(Fan_bool);
+
+  Serial.print(F("hr:")); 
+  Serial.print(float(clock_int)*0.01,2); // 2 decimal place
   }
 
 //********************************************************************
@@ -362,15 +365,15 @@ void loop() {
     Tbot_threshold = Tbot_night;
     Ttop_threshold = Ttop_night;
     uint8_t clock_int = 0; // reset daylight clock
-    Serial.print(F("Clock:"));
-    Serial.println(float(clock_int)*0.01,2); // 2 decimal place
+    //Serial.print(F("Clock:"));
+    //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
   else {
     Tbot_threshold = Tbot_day;
     Ttop_threshold = Ttop_day;
     clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
-    Serial.print(F("Clock:"));
-    Serial.println(float(clock_int)*0.01,2); // 2 decimal place
+    //Serial.print(F("Clock:"));
+    //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
 
   }
  
@@ -421,7 +424,7 @@ void loop() {
 
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
-  serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool);
+  serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool, clock_int);
 
 
   delay(15000); // Pause 15s
