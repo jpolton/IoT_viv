@@ -47,7 +47,7 @@
 // Include Adafruit Graphics & OLED libraries
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &Wire);
+Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 
 
 
@@ -83,7 +83,7 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 //Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
 
-const int MAX = 60; // 60;
+const int MAX = 40; // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
 int tempArray[ MAX ];
 int humArray[ MAX ];
 
@@ -110,17 +110,17 @@ void setup() {
 
   if ( SSD1306_LCDHEIGHT != 64 )
   {
-    Serial.print("Height incorrect, please fix Adafruit_SSD1306.h!");
+    Serial.print(F("Height incorrect, please fix Adafruit_SSD1306.h!"));
   }
 
 
-  Serial.println(SSD1306_LCDHEIGHT );
-  Serial.println(SSD1306_LCDWIDTH );
+  Serial.println(SSD1306_LCDHEIGHT);
+  Serial.println(SSD1306_LCDWIDTH);
  
   // Initialise arrays
   for ( int i = 0; i < MAX; i++ )
   {
-    tempArray[ i ] = 10;
+    tempArray[ i ] = 0;
     humArray[ i ] = 0;
   }    
 }
@@ -129,27 +129,27 @@ void setup() {
 void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, int Fan_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
-  Serial.print("Humidity bot: ");
+  Serial.print(F("Humidity bot: "));
   Serial.print(h_bot);
-  Serial.print(" %\t\t");
-  Serial.print("Temperature bot: ");
+  Serial.print(F(" %\t\t"));
+  Serial.print(F("Temperature bot: "));
   Serial.print(t_bot);
-  Serial.print(" *C\t\t");
-  Serial.print("T threshold bot: ");
+  Serial.print(F(" *C\t\t"));
+  Serial.print(F("T threshold bot: "));
   Serial.print(Tbot_threshold);
-  Serial.println(" *C");
+  Serial.println(F(" *C"));
   
-  Serial.print("Humidity top: ");
+  Serial.print(F("Humidity top: "));
   Serial.print(h_top);
-  Serial.print(" %\t\t");
-  Serial.print("Temperature top: ");
+  Serial.print(F(" %\t\t"));
+  Serial.print(F("Temperature top: "));
   Serial.print(t_top);
-  Serial.print(" *C\t\t");
-  Serial.print("T theshold top: ");
+  Serial.print(F(" *C\t\t"));
+  Serial.print(F("T theshold top: "));
   Serial.print(Ttop_threshold);
-  Serial.println(" *C");
+  Serial.println(F(" *C"));
 
-  Serial.print("LDR: ");
+  Serial.print(F("LDR: "));
   Serial.println(ldr);
 
   //Serial.print("T theshold top: ");
@@ -159,10 +159,10 @@ void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, 
   //Serial.print(Tbot_threshold);
   //Serial.println(" *C");
 
-  Serial.print("Heater:");
+  Serial.print(F("Heater:"));
   Serial.println(Heater_int);
 
-  Serial.print("Fan:");
+  Serial.print(F("Fan:"));
   Serial.println(Fan_bool);
   }
 
@@ -179,34 +179,34 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
   //Set the cursor coordinates
   display.setTextSize(1);
   display.setCursor(0,0);
-  display.print(" ldr:");
+  display.print(F(" ldr:"));
   display.print(round(ldr));
-  display.print(" heat:");
+  display.print(F(" heat:"));
   display.print(Heater_int);  
-  display.print(" fan:");
+  display.print(F(" fan:"));
   display.print(Fan_bool);  
   
   display.setTextSize(1);
   display.setCursor(0,10); 
   //display.print("   "); 
   display.print(t_top,1); // 1 decimal place
-  display.print(" C");
+  display.print(F(" C"));
 
-  display.print("  "); 
+  display.print(F("  ")); 
   display.print(round(h_top));
-  display.print(" %");
+  display.print(F(" %"));
   
   display.setTextSize(1);
   display.setCursor(0,20);
   //display.print("   "); 
   display.print(t_bot,1); // 1 decimal place
-  display.print(" C");
+  display.print(F(" C"));
 
-  display.print("  "); 
+  display.print(F("  ")); 
   display.print(round(h_bot));
-  display.print(" %");
+  display.print(F(" %"));
 
-  display.print(" hr:"); 
+  display.print(F(" hr:")); 
   display.print(float(clock_int)*0.01,2); // 2 decimal place
     
   display.display();
@@ -274,13 +274,13 @@ void drawTempGraph()
 {
   drawGraph();
   display.setCursor( 9, 54 );
-  display.print( "Temp:" );
+  display.print(F("Temp:"));
   display.print( ( float ) dht_top.readTemperature(), 1 );
-  display.println( "C" );
+  display.println(F("C"));
   display.setCursor( 0, 0 );
   display.write( 24 ); 
   display.setCursor( 0, 8 );
-  display.print( 'T' ); 
+  display.print(F("T")); 
   for (int i = 0; i < MAX; i++ )
     display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - tempArray[ i ] * 2, 2, WHITE ); 
 }
@@ -289,13 +289,13 @@ void drawHumGraph()
 {
   drawGraph();
   display.setCursor( 9, 54 );
-  display.print( "Hum: " );
+  display.print(F("Hum: "));
   display.print( ( float ) dht_top.readHumidity(), 1 );
-  display.println( "%" );
+  display.println(F("%"));
   display.setCursor( 0, 0 );
   display.write( 24 ); 
   display.setCursor( 0, 8 );
-  display.print( 'H' ); 
+  display.print(F("H")); 
   for (int i = 0; i < MAX; i++ )
     display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - humArray[ i ] / 2, 2, WHITE ); 
 }  
@@ -336,7 +336,7 @@ void loop() {
   
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
-    Serial.println("Failed to read from DHT sensor!");
+    Serial.println(F("Failed to read from DHT sensor!"));
     return;
   }
 
@@ -351,14 +351,14 @@ void loop() {
     Tbot_threshold = Tbot_night;
     Ttop_threshold = Ttop_night;
     clock_int = 0; // reset daylight clock
-    Serial.print("Clock:");
+    Serial.print(F("Clock:"));
     Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
   else {
     Tbot_threshold = Tbot_day;
     Ttop_threshold = Ttop_day;
     clock_int = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
-    Serial.print("Clock:");
+    Serial.print(F("Clock:"));
     Serial.println(float(clock_int)*0.01,2); // 2 decimal place
 
   }
