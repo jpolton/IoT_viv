@@ -287,7 +287,8 @@ void drawTempGraph()
   display.setCursor( 0, 8 );
   display.print(F("T")); 
   for (int i = 0; i < MAX; i++ )
-    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - tempArray[ i ] * 2, 2, WHITE ); 
+    //display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - tempArray[ i ] * 2, 2, WHITE ); 
+    display.drawFastHLine( 128 - MAX * 3 + i * 2, 64 - (tempArray[ i ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
 }
 //********************************************************************
 void drawHumGraph()
