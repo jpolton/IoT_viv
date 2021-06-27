@@ -50,19 +50,23 @@
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 
 
+#define DHTPIN_bot (uint8_t)8
+#define DHTPIN_top (uint8_t)9
+//#define OLED_WIDTH 128 // OLED display width, in pixels
+//#define OLED_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET (uint8_t)5   // Reset pin not used but needed for library
+#define outputPin  (uint8_t)12  // RBD dimmer
+#define zerocross  (uint8_t)2   // RBD can not change on nano
 
-#define DHTPIN_bot 8
-#define DHTPIN_top 9
-#define OLED_WIDTH 128 // OLED display width, in pixels
-#define OLED_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET 5 // Reset pin not used but needed for library
-#define outputPin  12  // RBD dimmer
-#define zerocross  2 // RBD can not change on nano
+#define FANPIN    (uint8_t)7    // Fan pin - Relay control
+#define HEATERPIN (uint8_t)6    // Ceraminc heater pin - Relay control - NON DIMMABLE, BUT ON/OFF SWITHABLE
+#define LIGHTPIN  (uint8_t)0    //define a pin for Photo resistor
 
-int fan = 7;
-int heater = 6;
-int lightPin = 0;  //define a pin for Photo resistor
-int clock_int = 0; // clock "loop" counter
+#define MAX (uint8_t)40 // length of variable storage array
+//const int MAX = 40; // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
+
+//int clock_int = 0;
+uint8_t clock_int = 0; // clock "loop" counter
 
 
 float Ttop_night = 16; //28.0; // 25 // Top temperature to activate heater
@@ -83,17 +87,18 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 //Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
 
-const int MAX = 40; // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
-int tempArray[ MAX ];
-int humArray[ MAX ];
+//int tempArray[ MAX ];
+//int humArray[ MAX ];
+uint8_t tempArray[ MAX ];
+uint8_t humArray[ MAX ];
 
 //********************************************************************
 void setup() {
   Serial.begin(115200);
   dht_bot.begin();
   dht_top.begin();
-  pinMode(fan, OUTPUT);
-  pinMode(heater, OUTPUT);
+  pinMode(FANPIN, OUTPUT);
+  pinMode(HEATERPIN, OUTPUT);
   dimmer.begin();
 
   // Start Wire library for I2C
@@ -118,7 +123,7 @@ void setup() {
   Serial.println(SSD1306_LCDWIDTH);
  
   // Initialise arrays
-  for ( int i = 0; i < MAX; i++ )
+  for ( uint8_t i = 0; i < MAX; i++ )
   {
     tempArray[ i ] = 0;
     humArray[ i ] = 0;
@@ -126,7 +131,7 @@ void setup() {
 }
 
 //********************************************************************
-void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, int Fan_bool){
+void serial_disp(float t_top, float t_bot, int ldr, float h_top, float h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, int Fan_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
   Serial.print(F("Humidity bot: "));
@@ -167,7 +172,7 @@ void serial_disp(float t_top, float t_bot, float ldr, float h_top, float h_bot, 
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Heater_int, int Fan_bool, int clock_int){
+void oled(float t_top, float t_bot, int ldr, float h_top, float h_bot, int Heater_int, int Fan_bool, int clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -180,7 +185,7 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
   display.setTextSize(1);
   display.setCursor(0,0);
   display.print(F(" ldr:"));
-  display.print(round(ldr));
+  display.print(ldr);
   display.print(F(" heat:"));
   display.print(Heater_int);  
   display.print(F(" fan:"));
@@ -228,10 +233,10 @@ void oled(float t_top, float t_bot, float ldr, float h_top, float h_bot, int Hea
 //********************************************************************
 void storeTemp()
 {
-  int temp = dht_top.readTemperature();
-  int hum  = dht_top.readHumidity(); 
+  uint8_t temp = dht_top.readTemperature();
+  uint8_t hum  = dht_top.readHumidity();
   static int i = 0;
-  if ( isnan( ( int ) temp ) ) // if no data
+  if ( isnan( ( uint8_t ) temp ) ) // if no data
     if ( i < MAX ) 
     {
       tempArray[ i ] = 0;
@@ -240,7 +245,7 @@ void storeTemp()
     }
     else
     {
-      for ( int j = 0; j < MAX - 1; j++ )
+      for ( uint8_t j = 0; j < MAX - 1; j++ )
       {
         tempArray[ j ] = tempArray[ j + 1 ];
         tempArray[ MAX - 1 ] = 0;
@@ -258,7 +263,7 @@ void storeTemp()
     }
     else // shift data along array. Drop oldest value.
     {
-      for ( int j = 0; j < MAX - 1; j++ )
+      for ( uint8_t j = 0; j < MAX - 1; j++ )
       {
         tempArray[ j ] = tempArray[ j + 1 ];
         tempArray[ MAX - 1 ] = temp;
@@ -278,7 +283,7 @@ void drawTempGraph()
   display.print( ( float ) dht_top.readTemperature(), 1 );
   display.println(F("C"));
   display.setCursor( 0, 0 );
-  display.write( 24 ); 
+  display.write( 24 );  // up arrow
   display.setCursor( 0, 8 );
   display.print(F("T")); 
   for (int i = 0; i < MAX; i++ )
@@ -293,7 +298,7 @@ void drawHumGraph()
   display.print( ( float ) dht_top.readHumidity(), 1 );
   display.println(F("%"));
   display.setCursor( 0, 0 );
-  display.write( 24 ); 
+  display.write( 24 );  // up arrow
   display.setCursor( 0, 8 );
   display.print(F("H")); 
   for (int i = 0; i < MAX; i++ )
@@ -332,7 +337,7 @@ void loop() {
   float t_top = dht_top.readTemperature();
  
   // Read LDR
-  int ldr = analogRead(lightPin);
+  int ldr = analogRead(LIGHTPIN);
   
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
@@ -369,13 +374,13 @@ void loop() {
   // NOTE: relay LOW = ON / HIGH = OFF
   //////////////////////////////////////////////////////
   if (t_bot < Tbot_threshold) {
-    digitalWrite(fan,HIGH); // Fan OFF
+    digitalWrite(FANPIN,HIGH); // Fan OFF
   }
   else {
-    digitalWrite(fan,HIGH); // Fan OFF
+    digitalWrite(FANPIN,HIGH); // Fan OFF
   }      
   if (t_top < Ttop_threshold - 2) {
-    digitalWrite(heater,LOW); // Heater ON
+    digitalWrite(HEATERPIN,LOW); // Heater ON
     //dimmer.setPower(50); // RBD setPower(0-100%);
     dimmer.set(50); // intensity. Accepts values from 0 to 100.
     // 50%-32C
@@ -383,7 +388,7 @@ void loop() {
     //Serial.println(dimmer.getValue());
   }
   if (t_top > Ttop_threshold + 2) {
-    digitalWrite(heater,HIGH); // Heater OFF
+    digitalWrite(HEATERPIN,HIGH); // Heater OFF
     //dimmer.setPower(0); // RBD setPower(0-100%);
     dimmer.set(0); // intensity. Accepts values from 0 to 100
     //Serial.print("Dimmer intensity: ");
@@ -391,10 +396,10 @@ void loop() {
   }
 
   //Serial.print("NEWHeater:");
-  //Serial.println(digitalRead(heater));
-  int Fan_bool = !digitalRead(fan);
-  //int Heater_int = !digitalRead(heater);
-  int Heater_int = dimmer.getValue(); // Heater_int is actually type: int
+  //Serial.println(digitalRead(HEATERPIN));
+  uint8_t Fan_bool = !digitalRead(FANPIN);
+  //int Heater_int = !digitalRead(HEATERPIN);
+  uint8_t Heater_int = dimmer.getValue(); // Heater_int is actually type: int
   //Serial.print("Test:");
   //Serial.println(test);
   
