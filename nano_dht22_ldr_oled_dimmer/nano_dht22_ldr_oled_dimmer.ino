@@ -113,15 +113,16 @@ void setup() {
   //Set the font size
   display.setTextSize(1);
 
+/*
   if ( SSD1306_LCDHEIGHT != 64 )
   {
     Serial.print(F("Height incorrect, please fix Adafruit_SSD1306.h!"));
   }
 
-
   Serial.println(SSD1306_LCDHEIGHT);
   Serial.println(SSD1306_LCDWIDTH);
- 
+*/ 
+
   // Initialise arrays
   for ( uint8_t i = 0; i < MAX; i++ )
   {
@@ -131,7 +132,7 @@ void setup() {
 }
 
 //********************************************************************
-void serial_disp(float t_top, float t_bot, int ldr, float h_top, float h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, int Fan_bool){
+void serial_disp(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
   Serial.print(F("Humidity bot: "));
@@ -172,7 +173,7 @@ void serial_disp(float t_top, float t_bot, int ldr, float h_top, float h_bot, fl
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, int ldr, float h_top, float h_bot, int Heater_int, int Fan_bool, int clock_int){
+void oled(float t_top, float t_bot, int ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, int clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -198,7 +199,8 @@ void oled(float t_top, float t_bot, int ldr, float h_top, float h_bot, int Heate
   display.print(F(" C"));
 
   display.print(F("  ")); 
-  display.print(round(h_top));
+  //display.print(round(h_top));
+  display.print(h_top);
   display.print(F(" %"));
   
   display.setTextSize(1);
@@ -208,7 +210,8 @@ void oled(float t_top, float t_bot, int ldr, float h_top, float h_bot, int Heate
   display.print(F(" C"));
 
   display.print(F("  ")); 
-  display.print(round(h_bot));
+  display.print(h_bot);
+  //display.print(round(h_bot));
   display.print(F(" %"));
 
   display.print(F(" hr:")); 
@@ -330,8 +333,8 @@ void loop() {
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   /////////////////////////////////////////////////////////////////////////////
-  float h_bot = dht_bot.readHumidity();
-  float h_top = dht_top.readHumidity();
+  uint8_t h_bot = dht_bot.readHumidity();
+  uint8_t h_top = dht_top.readHumidity();
 
   // Read temperature as Celsius
   float t_bot = dht_bot.readTemperature();
@@ -398,7 +401,7 @@ void loop() {
 
   //Serial.print("NEWHeater:");
   //Serial.println(digitalRead(HEATERPIN));
-  uint8_t Fan_bool = !digitalRead(FANPIN);
+  bool Fan_bool = !digitalRead(FANPIN);
   //int Heater_int = !digitalRead(HEATERPIN);
   uint8_t Heater_int = dimmer.getValue(); // Heater_int is actually type: int
   //Serial.print("Test:");
