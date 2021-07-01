@@ -18,10 +18,11 @@
 // 1.3.00 Dimmer: https://github.com/circuitar/Dimmer
 //        Removed RF transmitter (not compatible)
 // 1.3.01 Add loop counter
+// 1.4.00 Add graphs. E.g. https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino
+
 //
 //  STATUS: v1.0.00 WORKS
 
-// How to add graphs: https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino
 /*
   Displays results on 128 x 64 OLED display
   Uses Adafruit SSD1306 OLED Library
@@ -87,7 +88,7 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 //Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
 uint8_t tempArray[ MAX ];
-uint8_t humArray[ MAX ];
+uint8_t dimArray[ MAX ];
 
 //********************************************************************
 void setup() {
@@ -123,8 +124,8 @@ void setup() {
   // Initialise arrays
   for ( uint8_t i = 0; i < MAX; i++ )
   {
-    tempArray[ i ] = 0;
-    humArray[ i ] = 0;
+    tempArray[ i ] = 31;
+    dimArray[ i ] = 0;
   }    
 }
 
@@ -236,7 +237,7 @@ void storeTemp()
     if ( i < MAX ) 
     {
       tempArray[ i ] = 0;
-      humArray[ i ] = 0;
+      dimArray[ i ] = 0;
       i++;
     }
     else
@@ -245,8 +246,8 @@ void storeTemp()
       {
         tempArray[ j ] = tempArray[ j + 1 ];
         tempArray[ MAX - 1 ] = 0;
-        humArray[ j ] = humArray[ j + 1 ];
-        humArray[ MAX - 1 ] = 0; 
+        dimArray[ j ] = dimArray[ j + 1 ];
+        dimArray[ MAX - 1 ] = 0; 
       }
     }
   else // else if data not nan
@@ -254,7 +255,7 @@ void storeTemp()
     if ( i < MAX ) // add new datapoint
     {
       tempArray[ i ] = temp;
-      humArray[ i ] = hum;
+      dimArray[ i ] = hum;
       i++;
     }
     else // shift data along array. Drop oldest value.
@@ -263,8 +264,8 @@ void storeTemp()
       {
         tempArray[ j ] = tempArray[ j + 1 ];
         tempArray[ MAX - 1 ] = temp;
-        humArray[ j ] = humArray[ j + 1 ];
-        humArray[ MAX - 1 ] = hum; 
+        dimArray[ j ] = dimArray[ j + 1 ];
+        dimArray[ MAX - 1 ] = hum; 
       }
     }
   }
@@ -287,7 +288,7 @@ void drawTempGraph()
     display.drawFastHLine( 128 - MAX * 3 + i * 3, 64 - (tempArray[ i ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
 }
 //********************************************************************
-void drawHumGraph()
+void drawDimGraph()
 {
   drawGraph();
   display.setCursor( 9, 54 );
@@ -299,7 +300,7 @@ void drawHumGraph()
   display.setCursor( 0, 8 );
   display.print(F("H")); 
   for (uint8_t i = 0; i < MAX; i++ )
-    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - humArray[ i ] / 2, 2, WHITE ); 
+    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - dimArray[ i ] / 2, 2, WHITE ); 
 }  
 //********************************************************************
 void drawGraph()
