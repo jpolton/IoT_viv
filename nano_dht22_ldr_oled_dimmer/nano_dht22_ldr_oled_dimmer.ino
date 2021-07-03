@@ -63,17 +63,16 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define LIGHTPIN  (uint8_t)0    //define a pin for Photo resistor
 
 #define MAX (uint8_t)40 // length of variable storage array
-//const int MAX = 40; // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
+// 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
 
-//int clock_int = 0;
+#define Ttop_night (float)16; //28.0; // 25 // Top temperature to activate heater
+#define Tbot_night (float)16; //28.0; // 18 // Bottom temperature to active fan
+#define Ttop_day (float)35.0; // 35.0; //30.0// Top temperature to activate fan //heater
+#define Tbot_day (float)23.0; // Bottom temperature to active fan
+
 uint8_t clock_int = 0; // clock "loop" counter
 bool day_bool = false;
 
-
-float Ttop_night = 16; //28.0; // 25 // Top temperature to activate heater
-float Tbot_night = 16; //28.0; // 18 // Bottom temperature to active fan
-float Ttop_day = 35.0; // 35.0; //30.0// Top temperature to activate fan //heater
-float Tbot_day = 23.0; // Bottom temperature to active fan
 float Tbot_threshold = 0; // initialise
 float Ttop_threshold = 0;
 //int Heater_int = 0; // Heater on/off
@@ -87,9 +86,6 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 //Adafruit_SSD1306 display(OLED_RESET);
 //Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
-
-//int tempArray[ MAX ];
-//int humArray[ MAX ];
 uint8_t tempArray[ MAX ];
 uint8_t humArray[ MAX ];
 
@@ -158,13 +154,6 @@ void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t 
 
   Serial.print(F("LDR: "));
   Serial.println(ldr);
-
-  //Serial.print("T theshold top: ");
-  //Serial.print(Ttop_threshold);
-  //Serial.print(" *C\t\t");
-  //Serial.print("T threshold bot: ");
-  //Serial.print(Tbot_threshold);
-  //Serial.println(" *C");
 
   Serial.print(F("Heater:"));
   Serial.println(Heater_int);
