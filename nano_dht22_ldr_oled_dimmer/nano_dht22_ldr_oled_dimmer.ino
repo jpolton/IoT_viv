@@ -65,10 +65,10 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define MAX (uint8_t)40 // length of variable storage array
 // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
 
-#define Ttop_night (float)16; //28.0; // 25 // Top temperature to activate heater
-#define Tbot_night (float)16; //28.0; // 18 // Bottom temperature to active fan
-#define Ttop_day (float)35.0; // 35.0; //30.0// Top temperature to activate fan //heater
-#define Tbot_day (float)23.0; // Bottom temperature to active fan
+#define Ttop_night (float)16 //28.0; // 25 // Top temperature to activate heater
+#define Tbot_night (float)16 //28.0; // 18 // Bottom temperature to active fan
+#define Ttop_day (float)35.0 // 35.0; //30.0// Top temperature to activate fan //heater
+#define Tbot_day (float)23.0 // Bottom temperature to active fan
 
 uint8_t clock_int = 0; // clock "loop" counter
 bool day_bool = false;
