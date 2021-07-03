@@ -230,7 +230,7 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
 void storeTemp()
 {
   uint8_t temp = dht_top.readTemperature();
-  uint8_t hum  = dht_top.readHumidity();
+  uint8_t dim  = dimmer.getValue();
   static int i = 0;
   if ( isnan( ( uint8_t ) temp ) ) // if no data
     if ( i < MAX ) 
@@ -254,7 +254,7 @@ void storeTemp()
     if ( i < MAX ) // add new datapoint
     {
       tempArray[ i ] = temp;
-      dimArray[ i ] = hum;
+      dimArray[ i ] = dim;
       i++;
     }
     else // shift data along array. Drop oldest value.
@@ -264,7 +264,7 @@ void storeTemp()
         tempArray[ j ] = tempArray[ j + 1 ];
         tempArray[ MAX - 1 ] = temp;
         dimArray[ j ] = dimArray[ j + 1 ];
-        dimArray[ MAX - 1 ] = hum; 
+        dimArray[ MAX - 1 ] = dim; 
       }
     }
   }
@@ -274,7 +274,7 @@ void storeTemp()
 void drawTempGraph()
 {
   drawGraph();
-  display.setCursor( 9, 54 );
+  display.setCursor( 9, 44 );
   display.print(F("Temp:"));
   display.print( ( float ) dht_top.readTemperature(), 1 );
   display.println(F("C"));
@@ -282,24 +282,24 @@ void drawTempGraph()
   display.write( 24 );  // up arrow
   display.setCursor( 0, 8 );
   display.print(F("T")); 
-  for (uint8_t i = 0; i < MAX; i++ )
-    //display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - tempArray[ i ] * 2, 2, WHITE ); 
-    display.drawFastHLine( 128 - MAX * 3 + i * 3, 64 - (tempArray[ i ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
+  for (uint8_t j = 0; j < MAX; j++ )
+    //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - tempArray[ j ] * 2, 2, WHITE ); 
+    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 16, 2, WHITE ); //MAX=40, T=21,37
 }
 //********************************************************************
 void drawDimGraph()
 {
   drawGraph();
   display.setCursor( 9, 54 );
-  display.print(F("Hum: "));
-  display.print( ( float ) dht_top.readHumidity(), 1 );
+  display.print(F("Dim: "));
+  display.print( ( int ) dimmer.getValue() );
   display.println(F("%"));
   display.setCursor( 0, 0 );
   display.write( 24 );  // up arrow
   display.setCursor( 0, 8 );
-  display.print(F("H")); 
-  for (uint8_t i = 0; i < MAX; i++ )
-    display.drawFastHLine( 128 - MAX * 2 + i * 2, 64 - dimArray[ i ] / 2, 2, WHITE ); 
+  display.print(F("D")); 
+  for (uint8_t j = 0; j < MAX; j++ )
+    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
 }  
 //********************************************************************
 void drawGraph()
