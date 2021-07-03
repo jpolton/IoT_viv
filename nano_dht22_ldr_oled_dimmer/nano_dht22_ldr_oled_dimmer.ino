@@ -17,9 +17,8 @@
 // 1.2.00 Add OLED display
 // 1.3.00 Dimmer: https://github.com/circuitar/Dimmer
 //        Removed RF transmitter (not compatible)
-// 1.3.01 Add loop counter
-// 1.4.00 Add graphs. E.g. https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino
-
+// 1.3.01 Add loop counter. Add graphs.
+// 1.4.00 Add graphs. E.g. https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino (Numbering catchup)
 //
 //  STATUS: v1.0.00 WORKS
 
