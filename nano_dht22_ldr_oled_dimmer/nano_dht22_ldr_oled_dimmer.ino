@@ -319,6 +319,24 @@ void drawGraph()
   display.drawFastVLine( 7, 0, 100, WHITE );
   display.drawFastHLine( 7, 63, 120, WHITE );
 }
+
+//********************************************************************
+void errorTrap(uint8_t h_top, uint8_t h_bot,uint16_t t_top, uint16_t t_bot)
+{
+  // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
+  if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    display.setTextSize(1);
+    display.setCursor(0,10); 
+    display.print(F("Failed to read sensor!")); 
+    display.setCursor(0,20); 
+    display.print(t_top); 
+    display.print(t_bot); 
+    display.display();
+    return;
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -338,17 +356,7 @@ void loop() {
   uint16_t ldr = analogRead(LIGHTPIN);
   
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
-  if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    display.setTextSize(1);
-    display.setCursor(0,10); 
-    display.print(F("Failed to read sensor!")); 
-    display.setCursor(0,20); 
-    display.print(t_top); 
-    display.print(t_bot); 
-    display.display();
-    return;
-  }
+  errorTrap(h_top, h_bot, t_top, t_bot);
   
   delay(5000);
 
