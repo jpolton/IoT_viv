@@ -67,6 +67,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 
 //int clock_int = 0;
 uint8_t clock_int = 0; // clock "loop" counter
+bool day_bool = false;
 
 
 float Ttop_night = 16; //28.0; // 25 // Top temperature to activate heater
@@ -94,7 +95,7 @@ uint8_t humArray[ MAX ];
 
 //********************************************************************
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   dht_bot.begin();
   dht_top.begin();
   pinMode(FANPIN, OUTPUT);
@@ -172,7 +173,7 @@ void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t 
   Serial.println(Fan_bool);
 
   Serial.print(F("hr:")); 
-  Serial.print(float(clock_int)*0.01,2); // 2 decimal place
+  Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
 
 //********************************************************************
@@ -350,9 +351,12 @@ void loop() {
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
     Serial.println(F("Failed to read from DHT sensor!"));
-    display.setTextSize(2);
+    display.setTextSize(1);
     display.setCursor(0,10); 
-    display.print(F("Failed to read from DHT sensor!")); 
+    display.print(F("Failed to read sensor!")); 
+    display.setCursor(0,20); 
+    display.print(t_top); 
+    display.print(t_bot); 
     display.display();
     return;
   }
@@ -366,16 +370,18 @@ void loop() {
   // Check Light levels and switch between day and night settings
   // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
   //////////////////////////////////////////////////////////////////////////////////////////////		
-  if (ldr < 700) { // 500
+  if (ldr < 500) { // 500
     Tbot_threshold = Tbot_night;
     Ttop_threshold = Ttop_night;
     uint8_t clock_int = 0; // reset daylight clock
+    bool day_bool = false; // night
     //Serial.print(F("Clock:"));
     //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
   else {
     Tbot_threshold = Tbot_day;
     Ttop_threshold = Ttop_day;
+    bool day_bool = true; // day
     clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
     //Serial.print(F("Clock:"));
     //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
@@ -387,8 +393,8 @@ void loop() {
   // Check temperatures and switch the relay on and off.
   // NOTE: relay LOW = ON / HIGH = OFF
   //////////////////////////////////////////////////////
-  if (t_bot < Tbot_threshold) {
-    digitalWrite(FANPIN,HIGH); // Fan OFF
+  if ((t_top > Ttop_threshold) && (day_bool)) {
+    digitalWrite(FANPIN,LOW); // Fan ON
   }
   else {
     digitalWrite(FANPIN,HIGH); // Fan OFF
@@ -396,7 +402,7 @@ void loop() {
   if (t_top < Ttop_threshold - 2) {
     digitalWrite(HEATERPIN,LOW); // Heater ON
     //dimmer.setPower(50); // RBD setPower(0-100%);
-    dimmer.set(50); // intensity. Accepts values from 0 to 100.
+    dimmer.set(75); // intensity. Accepts values from 0 to 100.
     // 50%-32C
     //Serial.print("Dimmer intensity: ");
     //Serial.println(dimmer.getValue());
