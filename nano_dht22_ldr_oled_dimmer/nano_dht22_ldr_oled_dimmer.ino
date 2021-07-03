@@ -334,7 +334,6 @@ void drawGraph()
 /////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  delay(5000);
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   /////////////////////////////////////////////////////////////////////////////
@@ -351,8 +350,14 @@ void loop() {
   // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
   if (isnan(h_top) || isnan(t_top) || isnan(h_bot) || isnan(t_bot)) {
     Serial.println(F("Failed to read from DHT sensor!"));
+    display.setTextSize(2);
+    display.setCursor(0,10); 
+    display.print(F("Failed to read from DHT sensor!")); 
+    display.display();
     return;
   }
+  
+  delay(5000);
 
   // Store data
   storeTemp();
