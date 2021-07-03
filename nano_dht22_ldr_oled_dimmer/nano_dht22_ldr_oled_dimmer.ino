@@ -89,6 +89,8 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 uint8_t tempArray[ MAX ];
 uint8_t dimArray[ MAX ];
 
+unsigned long time_now = millis();
+
 //********************************************************************
 void setup() {
   Serial.begin(9600);
