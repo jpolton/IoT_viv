@@ -286,7 +286,7 @@ void drawTempGraph()
   display.print(F("T")); 
   for (uint8_t j = 0; j < MAX; j++ )
     //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - tempArray[ j ] * 2, 2, WHITE ); 
-    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 16, 2, WHITE ); //MAX=40, T=21,37
+    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
 }
 //********************************************************************
 void drawDimGraph()
