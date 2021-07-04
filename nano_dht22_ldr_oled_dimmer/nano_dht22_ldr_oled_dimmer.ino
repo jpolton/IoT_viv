@@ -71,7 +71,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define Tbot_day (float)23.0 // Bottom temperature to active fan
 
 uint8_t clock_int = 0; // clock "loop" counter
-bool day_bool = false;
+bool day_bool = false; // day->true, night->false
 
 float Tbot_threshold = 0; // initialise
 float Ttop_threshold = 0;
@@ -89,7 +89,7 @@ Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 uint8_t tempArray[ MAX ];
 uint8_t dimArray[ MAX ];
 
-unsigned long time_now = millis();
+unsigned long time_now = millis(); // timer for loop() control
 
 //********************************************************************
 void setup() {
@@ -344,109 +344,120 @@ void errorTrap(uint8_t h_top, uint8_t h_bot,uint16_t t_top, uint16_t t_bot)
 /////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  /////////////////////////////////////////////////////////////////////////////
-  uint8_t h_bot = dht_bot.readHumidity();
-  uint8_t h_top = dht_top.readHumidity();
 
-  // Read temperature as Celsius
-  float t_bot = dht_bot.readTemperature();
-  float t_top = dht_top.readTemperature();
- 
-  // Read LDR
-  uint16_t ldr = analogRead(LIGHTPIN);
+  if(millis() - time_now > 36000) // 36s loop --> 100 loops per hr
+  {
+    time_now = millis();
+    // Reading temperature or humidity takes about 250 milliseconds!
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    /////////////////////////////////////////////////////////////////////////////
+    uint8_t h_bot = dht_bot.readHumidity();
+    uint8_t h_top = dht_top.readHumidity();
   
-  // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
-  errorTrap(h_top, h_bot, t_top, t_bot);
-  
-  delay(5000);
-
-  // Store data
-  storeTemp();
-
-            
-  // Check Light levels and switch between day and night settings
-  // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
-  //////////////////////////////////////////////////////////////////////////////////////////////		
-  if (ldr < 500) { // 500
-    Tbot_threshold = Tbot_night;
-    Ttop_threshold = Ttop_night;
-    uint8_t clock_int = 0; // reset daylight clock
-    bool day_bool = false; // night
-    //Serial.print(F("Clock:"));
-    //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
-  }
-  else {
-    Tbot_threshold = Tbot_day;
-    Ttop_threshold = Ttop_day;
-    bool day_bool = true; // day
-    clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
-    //Serial.print(F("Clock:"));
-    //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
-
-  }
- 
-
+    // Read temperature as Celsius
+    float t_bot = dht_bot.readTemperature();
+    float t_top = dht_top.readTemperature();
+   
+    // Read LDR
+    uint16_t ldr = analogRead(LIGHTPIN);
     
-  // Check temperatures and switch the relay on and off.
-  // NOTE: relay LOW = ON / HIGH = OFF
-  //////////////////////////////////////////////////////
-  if ((t_top > Ttop_threshold) && (day_bool)) {
-    digitalWrite(FANPIN,LOW); // Fan ON
-  }
-  else {
-    digitalWrite(FANPIN,HIGH); // Fan OFF
-  }      
-  if (t_top < Ttop_threshold - 2) {
-    digitalWrite(HEATERPIN,LOW); // Heater ON
-    //dimmer.setPower(50); // RBD setPower(0-100%);
-    dimmer.set(75); // intensity. Accepts values from 0 to 100.
-    // 50%-32C
-    //Serial.print("Dimmer intensity: ");
-    //Serial.println(dimmer.getValue());
-  }
-  if (t_top > Ttop_threshold + 2) {
-    digitalWrite(HEATERPIN,HIGH); // Heater OFF
-    //dimmer.setPower(0); // RBD setPower(0-100%);
-    dimmer.set(0); // intensity. Accepts values from 0 to 100
-    //Serial.print("Dimmer intensity: ");
-    //Serial.println(dimmer.getValue());
-  }
-
-  //Serial.print("NEWHeater:");
-  //Serial.println(digitalRead(HEATERPIN));
-  bool Fan_bool = !digitalRead(FANPIN);
-  //int Heater_int = !digitalRead(HEATERPIN);
-  uint8_t Heater_int = dimmer.getValue(); // Heater_int is actually type: int
-  //Serial.print("Test:");
-  //Serial.println(test);
+    // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
+    errorTrap(h_top, h_bot, t_top, t_bot);
+    
+    //delay(5000);
   
-  // Adjust dimmer intensity. (range: 0-100)
-  ///////////////////////////////////////////////////////////
-  //dimmer.set(50); // intensity. Accepts values from 0 to 100
-  //Serial.print("Dimmer intensity: ");
-  //Serial.println(dimmer.getValue());
-
-  // Display variables on OLED display
-  /////////////////////////////////////////////////////////////////////////////
-  oled(t_top, t_bot, ldr, h_top, h_bot, Heater_int, Fan_bool, clock_int);
-
-  // Display variables on serial display
-  /////////////////////////////////////////////////////////////////////////////
-  serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool, clock_int);
-
-
-  delay(15000); // Pause 15s
-
-  // Display Temperature timeseries display
-  /////////////////////////////////////////////////////////////////////////////
-  display.stopscroll(); //right(0x00,0x0F);  
-  display.clearDisplay();
-  display.display();
-  drawTempGraph();
-  display.display();
+    // Store data
+    storeTemp();
+  
+              
+    // Check Light levels and switch between day and night settings
+    // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
+    //////////////////////////////////////////////////////////////////////////////////////////////		
+    if (ldr < 500) { // 500
+      Tbot_threshold = Tbot_night;
+      Ttop_threshold = Ttop_night;
+      uint8_t clock_int = 0; // reset daylight clock
+      bool day_bool = false; // night
+      //Serial.print(F("Clock:"));
+      //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
+    }
+    else {
+      Tbot_threshold = Tbot_day;
+      Ttop_threshold = Ttop_day;
+      bool day_bool = true; // day
+      clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
+      //Serial.print(F("Clock:"));
+      //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
+  
+    }
+   
+  
       
-  delay(15000); // Pause 15s
-  //delay(5000); // 5s
+    // Check temperatures and switch the relay on and off.
+    // NOTE: relay LOW = ON / HIGH = OFF
+    //////////////////////////////////////////////////////
+    if ((t_top > Ttop_threshold) && (day_bool)) {
+      digitalWrite(FANPIN,LOW); // Fan ON
+    }
+    else {
+      digitalWrite(FANPIN,HIGH); // Fan OFF
+    }      
+    if (t_top < Ttop_threshold - 2) {
+      digitalWrite(HEATERPIN,LOW); // Heater ON
+      //dimmer.setPower(50); // RBD setPower(0-100%);
+      dimmer.set(75); // intensity. Accepts values from 0 to 100.
+      // 50%-32C
+      //Serial.print("Dimmer intensity: ");
+      //Serial.println(dimmer.getValue());
+    }
+    if (t_top > Ttop_threshold + 2) {
+      digitalWrite(HEATERPIN,HIGH); // Heater OFF
+      //dimmer.setPower(0); // RBD setPower(0-100%);
+      dimmer.set(0); // intensity. Accepts values from 0 to 100
+      //Serial.print("Dimmer intensity: ");
+      //Serial.println(dimmer.getValue());
+    }
+  
+    //Serial.print("NEWHeater:");
+    //Serial.println(digitalRead(HEATERPIN));
+    bool Fan_bool = !digitalRead(FANPIN);
+    //int Heater_int = !digitalRead(HEATERPIN);
+    uint8_t Heater_int = dimmer.getValue(); // Heater_int is actually type: int
+    //Serial.print("Test:");
+    //Serial.println(test);
+    
+    // Adjust dimmer intensity. (range: 0-100)
+    ///////////////////////////////////////////////////////////
+    //dimmer.set(50); // intensity. Accepts values from 0 to 100
+    //Serial.print("Dimmer intensity: ");
+    //Serial.println(dimmer.getValue());
+  
+    // Display variables on serial display
+    /////////////////////////////////////////////////////////////////////////////
+    serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool, clock_int);
+
+    // Display variables on OLED display
+    /////////////////////////////////////////////////////////////////////////////
+    oled(t_top, t_bot, ldr, h_top, h_bot, Heater_int, Fan_bool, clock_int);
+  }
+
+
+  //delay(15000); // Pause 15s
+
+  if(millis() - time_now > 15000)
+  {
+    if (analogRead(LIGHTPIN) > 10)
+    {
+      // Display Temperature timeseries display
+      /////////////////////////////////////////////////////////////////////////////
+      display.stopscroll(); //right(0x00,0x0F);  
+      display.clearDisplay();
+      //display.display();
+      drawTempGraph();
+      display.display();
+          
+      //delay(15000); // Pause 15s
+      //delay(5000); // 5s
+    }
+  }
 }
