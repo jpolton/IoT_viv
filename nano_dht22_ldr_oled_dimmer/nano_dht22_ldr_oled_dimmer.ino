@@ -273,9 +273,9 @@ void storeTemp()
 }
 
 //********************************************************************
-void drawTempGraph()
+void drawGraphData()
 {
-  drawGraph();
+  drawGraphAxes();
   display.setCursor( 9, 44 );
   display.print(F("Temp:"));
   display.print( ( float ) dht_top.readTemperature(), 1 );
@@ -291,22 +291,7 @@ void drawTempGraph()
     display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
 }
 //********************************************************************
-void drawDimGraph()
-{
-  drawGraph();
-  display.setCursor( 9, 54 );
-  display.print(F("Dim: "));
-  display.print( ( int ) dimmer.getValue() );
-  display.println(F("%"));
-  display.setCursor( 0, 0 );
-  display.write( 24 );  // up arrow
-  display.setCursor( 0, 8 );
-  display.print(F("D")); 
-  for (uint8_t j = 0; j < MAX; j++ )
-    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
-}  
-//********************************************************************
-void drawGraph()
+void drawGraphAxes()
 {
   display.drawPixel( 6, 13, WHITE ); 
   display.drawPixel( 6, 23, WHITE ); 
@@ -474,7 +459,7 @@ void loop() {
       /////////////////////////////////////////////////////////////////////////////
       //display.stopscroll(); //right(0x00,0x0F);  
       display.clearDisplay();
-      drawTempGraph();
+      drawGraphData();
       display.display();
     }
   }
