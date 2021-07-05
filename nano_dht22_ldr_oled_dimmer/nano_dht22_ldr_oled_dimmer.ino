@@ -71,7 +71,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define Tbot_day (float)23.0 // Bottom temperature to active fan
 
 uint8_t clock_int = 0; // clock "loop" counter
-bool day_bool = false; // day->true, night->false
+boolean day_bool = 0; // day->true, night->false
 
 float Tbot_threshold = 0; // initialise
 float Ttop_threshold = 0;
@@ -375,19 +375,20 @@ void loop() {
     if (ldr < 500) { // 500
       Tbot_threshold = Tbot_night;
       Ttop_threshold = Ttop_night;
-      uint8_t clock_int = 0; // reset daylight clock
-      bool day_bool = false; // night
+      clock_int = 0; // reset daylight clock
+      day_bool = 0; // night
       //Serial.print(F("Clock:"));
       //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
     }
     else {
       Tbot_threshold = Tbot_day;
       Ttop_threshold = Ttop_day;
-      bool day_bool = true; // day
+      day_bool = 1; // day
       clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
       //Serial.print(F("Clock:"));
       //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
-  
+      Serial.print(F("WRITE:day_bool=1:"));
+      Serial.println(day_bool);
     }
    
   
