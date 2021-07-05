@@ -442,7 +442,7 @@ void loop() {
   {
     if (analogRead(LIGHTPIN) > 10)
     {
-      // Display Temperature timeseries display
+      // OLED display refresh managment
       /////////////////////////////////////////////////////////////////////////////
       display.stopscroll(); //right(0x00,0x0F);  
       display.clearDisplay();
