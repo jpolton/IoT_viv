@@ -390,7 +390,7 @@ void loop() {
     // Check temperatures and switch the relay on and off.
     // NOTE: relay LOW = ON / HIGH = OFF
     //////////////////////////////////////////////////////
-    if ((t_top > Ttop_threshold) && (day_bool)) {
+    if ((t_top > Ttop_threshold - 2) && (day_bool)) {
       digitalWrite(FANPIN,LOW); // Fan ON
     }
     else {
