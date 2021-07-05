@@ -286,6 +286,8 @@ void drawTempGraph()
   for (uint8_t j = 0; j < MAX; j++ )
     //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - tempArray[ j ] * 2, 2, WHITE ); 
     display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
+  for (uint8_t j = 0; j < MAX; j++ )
+    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
 }
 //********************************************************************
 void drawDimGraph()
@@ -310,15 +312,16 @@ void drawGraph()
   display.drawPixel( 6, 33, WHITE ); 
   display.drawPixel( 6, 43, WHITE ); 
   display.drawPixel( 6, 53, WHITE ); 
-  /* x-axis ticks
+  // x-axis ticks
   display.drawPixel( 27, 62, WHITE ); 
   display.drawPixel( 47, 62, WHITE ); 
   display.drawPixel( 67, 62, WHITE ); 
   display.drawPixel( 87, 62, WHITE ); 
   display.drawPixel( 107, 62, WHITE ); 
-  */
+  //
   display.drawFastVLine( 7, 0, 100, WHITE );
-  display.drawFastHLine( 7, 63, 120, WHITE );
+  //display.drawFastHLine( 7, 63, 120, WHITE );
+  display.drawFastHLine( 7, 61, 120, WHITE );
 }
 
 //********************************************************************
