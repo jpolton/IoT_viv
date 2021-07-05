@@ -218,7 +218,6 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   if (ldr < 10) {
     // Clear the display if it is dark
     delay(2000);
-    display.stopscroll(); //right(0x00,0x0F);  
     display.clearDisplay();
     display.display();
   }
@@ -444,7 +443,7 @@ void loop() {
 
   //delay(15000); // Pause 15s
 
-  if(millis() - time_now > 15000)
+  if((millis() - time_now > 15000) && (millis() - time_now < 16000))
   {
     if (analogRead(LIGHTPIN) > 10)
     {
@@ -452,12 +451,21 @@ void loop() {
       /////////////////////////////////////////////////////////////////////////////
       display.stopscroll(); //right(0x00,0x0F);  
       display.clearDisplay();
-      //display.display();
+      display.display();
+    }
+  }
+  
+  if(millis() - time_now > 16000)
+  {
+    if (analogRead(LIGHTPIN) > 10)
+    {
+      // Display Temperature timeseries display
+      // clearDisplay --> draw --> display seems to have the 'cleanest' screen
+      /////////////////////////////////////////////////////////////////////////////
+      //display.stopscroll(); //right(0x00,0x0F);  
+      display.clearDisplay();
       drawTempGraph();
       display.display();
-          
-      //delay(15000); // Pause 15s
-      //delay(5000); // 5s
     }
   }
 }
