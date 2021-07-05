@@ -90,6 +90,7 @@ uint8_t tempArray[ MAX ];
 uint8_t dimArray[ MAX ];
 
 unsigned long time_now = millis(); // timer for loop() control
+unsigned long time_log = millis(); // timer for logging control
 
 //********************************************************************
 void setup() {
@@ -347,6 +348,13 @@ void errorTrap(uint8_t h_top, uint8_t h_bot,uint16_t t_top, uint16_t t_bot)
 
 void loop() {
 
+  // Store data
+  if(millis() - time_log > 360000) // 6 mins
+  {
+    time_log = millis();
+    storeTemp();
+  }
+  
   if(millis() - time_now > 36000) // 36s loop --> 100 loops per hr
   {
     time_now = millis();
@@ -368,8 +376,6 @@ void loop() {
     
     //delay(5000);
   
-    // Store data
-    storeTemp();
   
               
     // Check Light levels and switch between day and night settings
