@@ -94,7 +94,7 @@ unsigned long time_log = millis(); // timer for logging control
 
 //********************************************************************
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   dht_bot.begin();
   dht_top.begin();
   pinMode(FANPIN, OUTPUT);
