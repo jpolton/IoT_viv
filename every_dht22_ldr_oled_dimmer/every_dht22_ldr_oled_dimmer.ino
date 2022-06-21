@@ -1,4 +1,4 @@
-//      FILE: nano_dht22_ldr_rf_oled.ino
+//      FILE: every_dht22_ldr_rf_oled.ino
 //    AUTHOR: Jeff Polton
 //   VERSION: 25.05.2021
 //   PURPOSE: DHT22 temperature measurement, 
@@ -6,7 +6,7 @@
 //            oled display, dimmer control ...
 //     BOARD: Arduino megaAVR boards --> arduino nano every
 // PROCESSOR: ATMEGA4809
-//PROGRAMMER: AVRISP mkII
+//PROGRAMMER: Onboard Atmel mEDBG (UNO WiFi Rev2)
 //  FIRMWARE: Arduino IDE
 //       URL: 
 //   HISTORY:
@@ -21,16 +21,17 @@
 // 1.4.01 Add graphs. E.g. https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino (Numbering catchup)
 // 1.5.00 delay() --> millis()
 // 1.5.01 remove all delay() statements
+// 1.6.00 Replay RB dimmer with Krida PWM dimmer (PWM AC Dimmer TRIAC 8A SSR RELAY Module 50Hz)
 // 2.0.00 Nano Every
 
-//  STATUS: v1.0.00 WORKS
+//  STATUS: v1.6.00 WORKS
 
 /*
   Displays results on 128 x 64 OLED display
   Uses Adafruit SSD1306 OLED Library
   Uses Adafruit GFX Graphics Library
 
-  WIRING: (OLED -- Nano)
+  WIRING: (OLED -- Nano Every)
   VCC - 5V
   GND - GND
   SCL - A5
@@ -40,7 +41,6 @@
 
 #include <DHT.h>
 #include <DHT_U.h>
-//#include "Dimmer.h"
 
 // Include Wire Library for I2C
 #include <SPI.h> //i2c and the display libraries
@@ -57,19 +57,18 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 //#define OLED_WIDTH 128 // OLED display width, in pixels
 //#define OLED_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET (uint8_t)5   // Reset pin not used but needed for library
-#define outputPin  (uint8_t)12  // RBD dimmer
-//#define zerocross  (uint8_t)2   // RBD can not change on nano
 
-#define FANPIN    (uint8_t)7    // Fan pin - Relay control
-#define HEATERPIN (uint8_t)6    // Ceraminc heater pin - Relay control - NON DIMMABLE, BUT ON/OFF SWITHABLE
-#define LIGHTPIN  (uint8_t)0    //define a pin for Photo resistor
+#define HELIOS_PWM_PIN  (uint8_t)11  // HELIOS PWM dimmer - for IR heater
+#define HELIOS_RELAY_PIN (uint8_t)6    // HELIOS LED pin - Relay control - NON DIMMABLE, BUT ON/OFF SWITHABLE
+#define FAN_PIN    (uint8_t)7    // Fan pin - Relay control
+#define LIGHT_PIN  (uint8_t)0    //define a pin for Photo resistor
 
 #define MAX (uint8_t)40 // length of variable storage array
 // 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
 
 #define Ttop_night (float)16 //28.0; // 25 // Top temperature to activate heater
 #define Tbot_night (float)16 //28.0; // 18 // Bottom temperature to active fan
-#define Ttop_day (float)35.0; //30.0// Top temperature to activate fan //heater
+#define Ttop_day (float)35.0 //30.0// Top temperature to activate fan //heater
 #define Tbot_day (float)23.0 // Bottom temperature to active fan
 
 uint8_t clock_int = 0; // clock "loop" counter
@@ -82,7 +81,6 @@ float Ttop_threshold = 0;
 DHT dht_bot(DHTPIN_bot, DHT22); //, 30); // 30 is for cpu clock of esp8266 80Mhz
 DHT dht_top(DHTPIN_top, DHT22); //, 30);
 
-//Dimmer dimmer(outputPin, DIMMER_RAMP, 1.5);
 
 // Reset pin not used but needed for library
 //Adafruit_SSD1306 display(OLED_RESET);
@@ -99,10 +97,9 @@ void setup() {
   Serial.begin(9600);
   dht_bot.begin();
   dht_top.begin();
-  pinMode(FANPIN, OUTPUT);
-  pinMode(HEATERPIN, OUTPUT);
-  //dimmer.begin();
-  pinMode(outputPin, OUTPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(HELIOS_RELAY_PIN, OUTPUT);
+  pinMode(HELIOS_PWM_PIN, OUTPUT);
 
   // Start Wire library for I2C
   Wire.begin();
@@ -224,7 +221,7 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
 void storeTemp()
 {
   uint8_t temp = dht_top.readTemperature();
-  uint8_t dim  = analogRead(outputPin); //dimmer.getValue();
+  uint8_t dim  = 999;//analogRead(HELIOS_PWM_PIN); // CAN NOT READ PWM. NEED TO STORE. 
   static int i = 0;
   if ( isnan( ( uint8_t ) temp ) ) // if no data
     if ( i < MAX ) 
@@ -333,6 +330,7 @@ void loop() {
   }
   
   if(millis() - time_now > 36000) // 36s loop --> 100 loops per hr
+  //if(millis() - time_now > 3600) // 3.6s loop --> 1000 loops per hr // FOR DEBUGGING
   {
     time_now = millis();
     // Reading temperature or humidity takes about 250 milliseconds!
@@ -346,8 +344,11 @@ void loop() {
     float t_top = dht_top.readTemperature();
    
     // Read LDR
-    uint16_t ldr = analogRead(LIGHTPIN);
-    
+    uint16_t ldr = analogRead(LIGHT_PIN);
+
+    int Heater_int = 120;   // value range: [0-255]
+                            // leds only turn on in range 120 - 255
+
     // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
     errorTrap(h_top, h_bot, t_top, t_bot);
     
@@ -382,44 +383,49 @@ void loop() {
     // NOTE: relay LOW = ON / HIGH = OFF
     //////////////////////////////////////////////////////
     if ((t_top > Ttop_threshold - 2) && (day_bool)) {
-      digitalWrite(FANPIN,LOW); // Fan ON
+      digitalWrite(FAN_PIN,LOW); // Fan ON
       //Serial.print(F("ON:day_bool:"));
       //Serial.println(day_bool);
     }
     else {
-      digitalWrite(FANPIN,HIGH); // Fan OFF
+      digitalWrite(FAN_PIN,HIGH); // Fan OFF
       //Serial.print(F("OFF:day_bool:"));
       //Serial.println(day_bool);
     }      
     if ((t_top < Ttop_threshold - 2) && (day_bool)) {
-      digitalWrite(HEATERPIN,LOW); // Heater ON
+      digitalWrite(HELIOS_RELAY_PIN,LOW); // HELEOS LED ON
       //dimmer.setPower(50); // RBD setPower(0-100%);
-      analogWrite(outputPin,158); //(158=62% of 255) // dimmer.set(62); // 50% until 20Mar22// 75% until 19Feb22 // intensity. Accepts values from 0 to 100.
+      analogWrite(HELIOS_PWM_PIN,Heater_int); //(158=62% of 255) // dimmer.set(62); // 50% until 20Mar22// 75% until 19Feb22 // intensity. Accepts values from 0 to 100.
+      //digitalWrite(FAN_PIN,LOW); // Fan ON. TESTING
       // 50%-32C
       //Serial.print("Dimmer intensity: ");
       //Serial.println(dimmer.getValue());
     }
     if ((t_top > Ttop_threshold + 2) && (day_bool)) {
-      digitalWrite(HEATERPIN,HIGH); // Heater OFF
+      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
       //dimmer.setPower(0); // RBD setPower(0-100%);
-      analogWrite(outputPin,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100. 50 too much
+      analogWrite(HELIOS_PWM_PIN,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100. 50 too much
       //Serial.print("Dimmer intensity: ");
       //Serial.println(dimmer.getValue());
     }
     if (!day_bool) {
-      digitalWrite(HEATERPIN,HIGH); // Heater OFF
+      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
       //dimmer.setPower(0); // RBD setPower(0-100%);
-      analogWrite(outputPin,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100
+      analogWrite(HELIOS_PWM_PIN,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100
     }
   
-    //Serial.print("NEWHeater:");
-    //Serial.println(digitalRead(HEATERPIN));
-    bool Fan_bool = !digitalRead(FANPIN);
-    //int Heater_int = !digitalRead(HEATERPIN);
-    uint8_t Heater_int = analogRead(outputPin); // dimmer.getValue(); // Heater_int is actually type: int
-    //Serial.print("Test:");
-    //Serial.println(test);
-    
+    //Serial.print("Helios LED:");
+    //Serial.println(digitalRead(HELIOS_RELAY_PIN));
+    bool Fan_bool = !digitalRead(FAN_PIN);
+    bool Helios_bool = !digitalRead(HELIOS_RELAY_PIN);
+    //int Heater_int = !digitalRead(HELIOS_RELAY_PIN);
+    //uint8_t Heater_int = analogRead(HELIOS_PWM_PIN); // dimmer.getValue(); // Heater_int is actually type: int
+    //Serial.print("Heater_int: ");
+    //Serial.println(Heater_int);
+    Serial.print("Day:");
+    Serial.println(day_bool);
+
+
     // Adjust dimmer intensity. (range: 0-100)
     ///////////////////////////////////////////////////////////
     //dimmer.set(50); // intensity. Accepts values from 0 to 100
@@ -428,11 +434,11 @@ void loop() {
   
     // Display variables on serial display
     /////////////////////////////////////////////////////////////////////////////
-    //serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int, Fan_bool, clock_int);
+    serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int*Helios_bool, Fan_bool, clock_int);
 
     // Display variables on OLED display
     /////////////////////////////////////////////////////////////////////////////
-    oled(t_top, t_bot, ldr, h_top, h_bot, Heater_int, Fan_bool, clock_int);
+    oled(t_top, t_bot, ldr, h_top, h_bot, Heater_int*Helios_bool, Fan_bool, clock_int);
   }
 
 
@@ -441,7 +447,7 @@ void loop() {
 
  
   
-  if (analogRead(LIGHTPIN) > 10) // display management if it is LIGHT
+  if (analogRead(LIGHT_PIN) > 10) // display management if it is LIGHT
   {
     if((millis() - time_now > 15000) && (millis() - time_now < 16000))
     {
