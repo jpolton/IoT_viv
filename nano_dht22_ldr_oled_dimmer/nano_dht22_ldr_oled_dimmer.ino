@@ -19,8 +19,11 @@
 //        Removed RF transmitter (not compatible)
 // 1.3.01 Add loop counter. Add graphs.
 // 1.4.01 Add graphs. E.g. https://github.com/jigsawnz/Arduino-Multitasking/blob/master/clock_graph_temp_hum/clock_graph_temp_hum.ino (Numbering catchup)
+// 1.5.00 delay() --> millis()
+// 1.5.01 remove all delay() statements
+// 1.6.00 Replay RB dimmer with Krida PWM dimmer (PWM AC Dimmer TRIAC 8A SSR RELAY Module 50Hz)
 //
-//  STATUS: v1.0.00 WORKS
+//  STATUS: v1.6.00 WORKS
 
 /*
   Displays results on 128 x 64 OLED display
@@ -33,7 +36,6 @@
   SCL - A5
   SDA - A4
 
-  Processor: ATmega328P (old bootloader)
 */
 
 #include <DHT.h>
@@ -55,7 +57,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 //#define OLED_WIDTH 128 // OLED display width, in pixels
 //#define OLED_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET (uint8_t)5   // Reset pin not used but needed for library
-#define outputPin  (uint8_t)12  // RBD dimmer
+#define outputPin  (uint8_t)11  // RBD dimmer
 #define zerocross  (uint8_t)2   // RBD can not change on nano
 
 #define FANPIN    (uint8_t)7    // Fan pin - Relay control
@@ -94,7 +96,7 @@ unsigned long time_log = millis(); // timer for logging control
 
 //********************************************************************
 void setup() {
-  //Serial.begin(9600);
+  Serial.begin(9600);
   dht_bot.begin();
   dht_top.begin();
   pinMode(FANPIN, OUTPUT);
@@ -366,7 +368,7 @@ void loop() {
     // Check Light levels and switch between day and night settings
     // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
     //////////////////////////////////////////////////////////////////////////////////////////////		
-    if (ldr < 500) { // 500
+    if (ldr < 700) { // 700 jun22 // 500
       Tbot_threshold = Tbot_night;
       Ttop_threshold = Ttop_night;
       clock_int = 0; // reset daylight clock
@@ -399,7 +401,7 @@ void loop() {
     if (t_top < Ttop_threshold - 2) {
       digitalWrite(HEATERPIN,LOW); // Heater ON
       //dimmer.setPower(50); // RBD setPower(0-100%);
-      dimmer.set(75); // intensity. Accepts values from 0 to 100.
+      dimmer.set(62); // 50% until 20Mar22// 75% until 19Feb22 // intensity. Accepts values from 0 to 100.
       // 50%-32C
       //Serial.print("Dimmer intensity: ");
       //Serial.println(dimmer.getValue());
