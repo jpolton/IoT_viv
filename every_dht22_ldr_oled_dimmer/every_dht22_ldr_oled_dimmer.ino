@@ -24,7 +24,7 @@
 // 1.6.00 Replay RB dimmer with Krida PWM dimmer (PWM AC Dimmer TRIAC 8A SSR RELAY Module 50Hz)
 // 2.0.00 Nano Every
 
-//  STATUS: v1.6.00 WORKS
+//  STATUS: v2.0.00 WORKS
 
 /*
   Displays results on 128 x 64 OLED display
@@ -346,8 +346,9 @@ void loop() {
     // Read LDR
     uint16_t ldr = analogRead(LIGHT_PIN);
 
-    int Heater_int = 120;   // value range: [0-255]
+    int Heater_int = 140;   // value range: [0-255]
                             // leds only turn on in range 120 - 255
+                            // 120 didn't seem to fire on every, though ok on nano
 
     // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
     errorTrap(h_top, h_bot, t_top, t_bot);
