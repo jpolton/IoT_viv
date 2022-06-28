@@ -66,9 +66,9 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define FAN_PIN    (uint8_t)7    // Fan pin - Relay control
 #define LIGHT_PIN  (uint8_t)0    //define a pin for Photo resistor
 
-#define MAX (uint8_t)40 // length of variable storage array
-// 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
-
+#define MAX (uint8_t)120 //40 nano // length of variable storage array
+// nano: 40 works, 50 does not. Though there is some noise on the oled screen w/ MAX=40
+// every 120 - 6 hr display with pixel every 6mins
 #define Ttop_night (float)16 //28.0; // 25 // Top temperature to activate heater
 #define Tbot_night (float)16 //28.0; // 18 // Bottom temperature to active fan
 #define Ttop_day (float)35.0 //30.0// Top temperature to activate fan //heater
@@ -280,9 +280,11 @@ void drawGraphData()
   display.print(F("T")); 
   for (uint8_t j = 0; j < MAX; j++ )
     //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - tempArray[ j ] * 2, 2, WHITE ); 
-    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
+    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
+    display.drawFastHLine( 128 - MAX + j, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=120, T=21,37
   for (uint8_t j = 0; j < MAX; j++ )
-    display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
+    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
+    display.drawFastHLine( 128 - MAX + j, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=120, Dim=0,100
 }
 //********************************************************************
 void drawGraphAxes()
