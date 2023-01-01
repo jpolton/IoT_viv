@@ -174,7 +174,7 @@ void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t 
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, int Heater_int, bool Fan_bool, uint8_t clock_int){
+void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool, uint8_t clock_int){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -186,15 +186,23 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   //Set the cursor coordinates
   display.setTextSize(1);
   display.setCursor(0,0);
-  display.print(F(" ldr:"));
+  display.print(F("ldr:"));
   display.print(ldr);
   display.print(F(" heat:"));
   display.print(Heater_int);  
-  display.print(F(" fan:"));
-  display.print(Fan_bool);  
+ 
+  display.setTextSize(1);
+  display.setCursor(0,10);
+  display.print(F("fan:"));
+  display.print(Fan_bool); 
+
+  display.print(F("  ")); 
+  display.print(F(" hr:")); 
+  display.print(float(clock_int)*0.01,2); // 2 decimal place
+
   
   display.setTextSize(1);
-  display.setCursor(0,10); 
+  display.setCursor(0,30); 
   //display.print("   "); 
   display.print(t_top,1); // 1 decimal place
   display.print(F(" C"));
@@ -204,8 +212,12 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   display.print(h_top);
   display.print(F(" %"));
   
+  display.print(F("  (")); 
+  display.print(Ttop_threshold,0);  // 0 decimal place
+  display.print(F(" C)"));
+  
   display.setTextSize(1);
-  display.setCursor(0,20);
+  display.setCursor(0,40);
   //display.print("   "); 
   display.print(t_bot,1); // 1 decimal place
   display.print(F(" C"));
@@ -215,8 +227,11 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   //display.print(round(h_bot));
   display.print(F(" %"));
 
-  display.print(F(" hr:")); 
-  display.print(float(clock_int)*0.01,2); // 2 decimal place
+  display.print(F("  (")); 
+  display.print(Tbot_threshold,0);  // 0 decimal place
+  display.print(F(" C)"));
+  
+
     
   display.display();
 }
@@ -446,7 +461,7 @@ void loop() {
 
     // Display variables on OLED display
     /////////////////////////////////////////////////////////////////////////////
-    oled(t_top, t_bot, ldr, h_top, h_bot, Heater_int*Helios_bool, Fan_bool, clock_int);
+    oled(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int*Helios_bool, Fan_bool, clock_int);
 
     // Transmit the top and bottom temperatures to the weather station display
     /////////////////////////////////////////////////////////////////////////////
