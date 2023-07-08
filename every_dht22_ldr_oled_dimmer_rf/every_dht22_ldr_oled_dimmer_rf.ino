@@ -24,8 +24,10 @@
 // 1.6.00 Replay RB dimmer with Krida PWM dimmer (PWM AC Dimmer TRIAC 8A SSR RELAY Module 50Hz)
 // 2.0.00 Nano Every
 // 2.1.00 Add rf broadcast
+// 2.2.00 Restructure around ramping IR radiation. Temperature control only if too hot.
+// 2.3.00 Add 433Mhz RF control of main socket switches.
 
-//  STATUS: v2.1.00 WORKS
+//  STATUS: v2.3.00 WORKS
 
 /*
   Displays results on 128 x 64 OLED display
@@ -43,6 +45,7 @@
 #include <DHT.h>
 #include <DHT_U.h>
 #include <SensorTransmitter.h>
+#include <RCSwitch.h> // Needed to add "megaavr" to allowed architectures in library.properties: architectures=avr,esp8266,esp32,stm32,megaavr
 
 // Include Wire Library for I2C
 #include <SPI.h> //i2c and the display libraries
@@ -57,8 +60,6 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define DHTPIN_bot (uint8_t)8
 #define DHTPIN_top (uint8_t)9
 #define RFPIN (uint8_t)4
-//#define OLED_WIDTH 128 // OLED display width, in pixels
-//#define OLED_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET (uint8_t)5   // Reset pin not used but needed for library
 
 #define HELIOS_PWM_PIN  (uint8_t)11  // HELIOS PWM dimmer - for IR heater
@@ -74,12 +75,17 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define Ttop_day (float)35.0 //30.0// Top temperature to activate fan //heater
 #define Tbot_day (float)23.0 // Bottom temperature to active fan
 
-uint8_t clock_int = 0; // clock "loop" counter
+#define MID_AM  (uint16_t) 300    // 3*100: hours*100 since SUNRISE to MID MORNING
+#define MID_PM  (uint16_t) 900    // 9*100: hours*100 since SUNRISE to MID AFTERNOON
+#define NOON  (uint16_t) 600      // 6*100: hours*100 since SUNRISE to NOON
+
+// CAN INITIALISE START HOUR*100 SINCE SUNRISE HERE.
+uint16_t clock_int = 0 ; //660; //0; // clock "loop" counter. 100 per hr. range[0:1200]
+
 boolean day_bool = 0; // day->true, night->false
 
 float Tbot_threshold = 0; // initialise
 float Ttop_threshold = 0;
-//int Heater_int = 0; // Heater on/off
 
 DHT dht_bot(DHTPIN_bot, DHT22); //, 30); // 30 is for cpu clock of esp8266 80Mhz
 DHT dht_top(DHTPIN_top, DHT22); //, 30);
@@ -87,12 +93,18 @@ DHT dht_top(DHTPIN_top, DHT22); //, 30);
 // Initializes a ThermoHygroTransmitter on pin RFPIN, with "random" ID 0, on channel 2.
 ThermoHygroTransmitter transmitter(RFPIN, 0, 2);
 
+// initialise RCSwitch to communicate with 433Mhz mains socket switches
+RCSwitch mySwitch = RCSwitch();
+
 // Reset pin not used but needed for library
 //Adafruit_SSD1306 display(OLED_RESET);
 //Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
 
-uint8_t tempArray[ MAX ];
-uint8_t dimArray[ MAX ];
+// Carried variables
+uint8_t t_bot_arr[ MAX ];
+uint8_t t_top_arr[ MAX ];
+uint8_t dim_arr[ MAX ];
+uint8_t Heater_int = 0; // Heater [0,255]
 
 unsigned long time_now = millis(); // timer for loop() control
 unsigned long time_log = millis(); // timer for logging control
@@ -102,8 +114,13 @@ void setup() {
   Serial.begin(9600);
   dht_bot.begin();
   dht_top.begin();
+  
+  digitalWrite(FAN_PIN,HIGH); // Fan OFF
   pinMode(FAN_PIN, OUTPUT);
+  
+  digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
   pinMode(HELIOS_RELAY_PIN, OUTPUT);
+  
   pinMode(HELIOS_PWM_PIN, OUTPUT);
 
   // Start Wire library for I2C
@@ -118,6 +135,8 @@ void setup() {
   //Set the font size
   display.setTextSize(1);
 
+  // Transmitter is connected to RFPIN  
+  mySwitch.enableTransmit(RFPIN);
 /*
   if ( SSD1306_LCDHEIGHT != 64 )
   {
@@ -131,13 +150,14 @@ void setup() {
   // Initialise arrays
   for ( uint8_t i = 0; i < MAX; i++ )
   {
-    tempArray[ i ] = 31;
-    dimArray[ i ] = 0;
+    t_bot_arr[ i ] = 0;
+    t_top_arr[ i ] = 0;
+    dim_arr[ i ] = 0;
   }    
 }
 
 //********************************************************************
-void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool, uint8_t clock_int){
+void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, bool Fan_bool, uint16_t clock_int, bool day_bool){
   // Display variables on serial display
   /////////////////////////////////////////////////////////////////////////////
   Serial.print(F("Humidity bot: "));
@@ -168,13 +188,16 @@ void serial_disp(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t 
 
   Serial.print(F("Fan:"));
   Serial.println(Fan_bool);
-
+  
+  Serial.print(F("Day:"));
+  Serial.println(day_bool);
+  
   Serial.print(F("hr:")); 
   Serial.println(float(clock_int)*0.01,2); // 2 decimal place
   }
 
 //********************************************************************
-void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, int Heater_int, bool Fan_bool, uint8_t clock_int){
+void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, float Ttop_threshold, float Tbot_threshold, bool Fan_bool, uint16_t clock_int, bool day_bool){
   // Display variables on OLED display
   /////////////////////////////////////////////////////////////////////////////
   // Clear the display
@@ -200,9 +223,19 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   display.print(F(" hr:")); 
   display.print(float(clock_int)*0.01,2); // 2 decimal place
 
-  
   display.setTextSize(1);
-  display.setCursor(0,30); 
+  display.setCursor(0,20);
+  if ( day_bool > 0 )
+  {
+    display.print(F("day"));
+  }
+  else
+  {
+    display.print(F("night"));
+  }
+    
+  display.setTextSize(1);
+  display.setCursor(0,40); 
   //display.print("   "); 
   display.print(t_top,1); // 1 decimal place
   display.print(F(" C"));
@@ -217,7 +250,7 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
   display.print(F(" C)"));
   
   display.setTextSize(1);
-  display.setCursor(0,40);
+  display.setCursor(0,50);
   //display.print("   "); 
   display.print(t_bot,1); // 1 decimal place
   display.print(F(" C"));
@@ -240,42 +273,50 @@ void oled(float t_top, float t_bot, uint16_t ldr, uint8_t h_top, uint8_t h_bot, 
 //********************************************************************
 void storeTemp()
 {
-  uint8_t temp = dht_top.readTemperature();
-  uint8_t dim  = 999;//analogRead(HELIOS_PWM_PIN); // CAN NOT READ PWM. NEED TO STORE. 
+  uint8_t temp1 = dht_bot.readTemperature();
+  uint8_t temp2 = dht_top.readTemperature();
+  //bool Helios_bool = !digitalRead(HELIOS_RELAY_PIN);
+  uint8_t dim  = Heater_int;
   static int i = 0;
-  if ( isnan( ( uint8_t ) temp ) ) // if no data
+  if ( isnan( ( uint8_t ) temp1 ) ) // if no data
     if ( i < MAX ) 
     {
-      tempArray[ i ] = 0;
-      dimArray[ i ] = 0;
+      t_bot_arr[ i ] = 0;
+      t_top_arr[ i ] = 0;
+      dim_arr[ i ] = 0;
       i++;
     }
     else
     {
       for ( uint8_t j = 0; j < MAX - 1; j++ )
       {
-        tempArray[ j ] = tempArray[ j + 1 ];
-        tempArray[ MAX - 1 ] = 0;
-        dimArray[ j ] = dimArray[ j + 1 ];
-        dimArray[ MAX - 1 ] = 0; 
+        t_bot_arr[ j ] = t_bot_arr[ j + 1 ];
+        t_top_arr[ j ] = t_top_arr[ j + 1 ];
+        t_bot_arr[ MAX - 1 ] = 0;
+        t_top_arr[ MAX - 1 ] = 0;
+        dim_arr[ j ] = dim_arr[ j + 1 ];
+        dim_arr[ MAX - 1 ] = 0; 
       }
     }
   else // else if data not nan
   {
     if ( i < MAX ) // add new datapoint
     {
-      tempArray[ i ] = temp;
-      dimArray[ i ] = dim;
+      t_bot_arr[ i ] = temp1;
+      t_top_arr[ i ] = temp2;
+      dim_arr[ i ] = dim;
       i++;
     }
     else // shift data along array. Drop oldest value.
     {
       for ( uint8_t j = 0; j < MAX - 1; j++ )
       {
-        tempArray[ j ] = tempArray[ j + 1 ];
-        tempArray[ MAX - 1 ] = temp;
-        dimArray[ j ] = dimArray[ j + 1 ];
-        dimArray[ MAX - 1 ] = dim; 
+        t_bot_arr[ j ] = t_bot_arr[ j + 1 ];
+        t_bot_arr[ MAX - 1 ] = temp1;
+        t_top_arr[ j ] = t_top_arr[ j + 1 ];
+        t_top_arr[ MAX - 1 ] = temp2;
+        dim_arr[ j ] = dim_arr[ j + 1 ];
+        dim_arr[ MAX - 1 ] = dim; 
       }
     }
   }
@@ -287,6 +328,8 @@ void drawGraphData()
   drawGraphAxes();
   display.setCursor( 9, 44 );
   display.print(F("Temp:"));
+  display.print( ( float ) dht_bot.readTemperature(), 1 );
+  display.print(F("/"));
   display.print( ( float ) dht_top.readTemperature(), 1 );
   display.println(F("C"));
   display.setCursor( 0, 0 );
@@ -294,12 +337,14 @@ void drawGraphData()
   display.setCursor( 0, 8 );
   display.print(F("T")); 
   for (uint8_t j = 0; j < MAX; j++ )
-    //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - tempArray[ j ] * 2, 2, WHITE ); 
-    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
-    display.drawFastHLine( 128 - MAX + j, 64 - (tempArray[ j ]-21) * 4, 2, WHITE ); //MAX=120, T=21,37
+    //display.drawFastHLine( 128 - MAX * 2 + j * 2, 64 - t_bot_arr[ j ] * 2, 2, WHITE ); 
+    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - (t_bot_arr[ j ]-21) * 4, 2, WHITE ); //MAX=40, T=21,37
+    display.drawFastHLine( 128 - MAX + j, 64 - (t_top_arr[ j ]-15) * 3, 2, WHITE ); //MAX=120, T=21,37
   for (uint8_t j = 0; j < MAX; j++ )
-    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
-    display.drawFastHLine( 128 - MAX + j, 64 - dimArray[ j ] * 64/100, 2, WHITE ); //MAX=120, Dim=0,100
+    display.drawFastHLine( 128 - MAX + j, 64 - (t_bot_arr[ j ]-15) * 3, 3, WHITE );
+  for (uint8_t j = 0; j < MAX; j++ )
+    //display.drawFastHLine( 128 - MAX * 3 + j * 3, 64 - dim_arr[ j ] * 64/100, 2, WHITE ); //MAX=40, Dim=0,100
+    display.drawFastHLine( 128 - MAX + j, 64 - dim_arr[ j ] * 64/255, 2, WHITE );
 }
 //********************************************************************
 void drawGraphAxes()
@@ -338,6 +383,30 @@ void errorTrap(uint8_t h_top, uint8_t h_bot,uint16_t t_top, uint16_t t_bot)
   }
 }
 
+//********************************************************************
+void HELIOS_val(int clock_int)
+{
+    // Calculate value for HELIOS DIMMER
+    // value range: [0-255]
+    // leds only turn on in range 120 - 255
+    // 120 didn't seem to fire on every, though ok on nano // OLD NOTES
+    if (clock_int < NOON) { // Ramp up to NOON: [0-255]
+      Heater_int = int(clock_int * 0.425);  // (255 / 600) = 0.425  ms->mins over 6hrs scaling from 0:255
+      //Serial.println(F("A.M."));
+    } 
+    else {  // Ramp down from NOON: [255-0] 
+      //Heater_int = int((NOON + NOON - millis() + time_sunrise)/float(NOON)*255);
+      Heater_int = int((NOON + NOON - clock_int) * 0.425); //  scaling over 6hrs scaling from 255:0
+      //Heater_int = (NOON + NOON - millis() + time_sunrise) / 84705;  // (60000 / 255 * 6*60) = 84,705  ms->mins over 6hrs scaling from 255:0
+      //Serial.println(F("P.M."));
+    }
+
+    //Serial.print(F("clock_int:"));
+    //Serial.println(clock_int);
+    //Serial.print(F("Heater calc:"));
+    //Serial.println((int(10 * clock_int * 0.425)));
+    return;
+}
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -364,16 +433,19 @@ void loop() {
     // Read temperature as Celsius
     float t_bot = dht_bot.readTemperature();
     float t_top = dht_top.readTemperature();
+    
+    // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
+    errorTrap(h_top, h_bot, t_top, t_bot);
    
     // Read LDR
     uint16_t ldr = analogRead(LIGHT_PIN);
 
-    int Heater_int = 140;   // value range: [0-255]
+    //int Heater_int = 0;
+    //int Heater_int = 140;   // value range: [0-255]
                             // leds only turn on in range 120 - 255
                             // 120 didn't seem to fire on every, though ok on nano
 
-    // Check if any reads failed and exit early (to try again). DONT HAVE ERROR TRAPPING ON LDR
-    errorTrap(h_top, h_bot, t_top, t_bot);
+
     
   
                 
@@ -381,87 +453,99 @@ void loop() {
     // Connected via a 10k Ohm resistor, ambient light seems about 1000. Darkish room is about 300.
     // Summer morning ~650
     //////////////////////////////////////////////////////////////////////////////////////////////    
-    if (ldr < 700) { // 500
+    if (ldr < 500) { // 700
       Tbot_threshold = Tbot_night;
       Ttop_threshold = Ttop_night;
       clock_int = 0; // reset daylight clock
       day_bool = 0; // night
-      //Serial.print(F("Clock:"));
-      //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
     }
     else {
       Tbot_threshold = Tbot_day;
       Ttop_threshold = Ttop_day;
       day_bool = 1; // day
-      clock_int++; // = clock_int+1; // 1s (oled) + 35s (loop). loop=100 is 1hr
-      //Serial.print(F("Clock:"));
-      //Serial.println(float(clock_int)*0.01,2); // 2 decimal place
-      //Serial.print(F("WRITE:day_bool=1:"));
-      //Serial.println(day_bool);
+      clock_int++; // loop=100 is 1hr
     }
    
   
-      
-    // Check temperatures and switch the relay on and off.
+    // Check TIME. MID MORNING/AFTERNOON:  switch the relay BRIGHT LIGHTS on/off.
     // NOTE: relay LOW = ON / HIGH = OFF
     //////////////////////////////////////////////////////
-    if ((t_top > Ttop_threshold - 2) && (day_bool)) {
+    if((clock_int > MID_AM) && (clock_int < MID_PM)) {
+      digitalWrite(HELIOS_RELAY_PIN,LOW); // HELEOS LED ON
+      Serial.println(F("LIGHTS ON."));
+    }
+    else {
+      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
+      Serial.println(F("LIGHTS OFF."));
+    }
+    Serial.println(clock_int > MID_AM);
+    Serial.println(clock_int < MID_PM);
+      
+    // DAY TIME
+    // Check TIME. MORNING: RAMP the HEATER UP. AFTERNOON RAMP the HEATER DOWN
+    //////////////////////////////////////////////////////
+    if (day_bool) {
+      HELIOS_val(clock_int);
+      Serial.print(F("Heater reset:"));
+      Serial.println(Heater_int);
+    }
+    else { // NIGHT
+      Heater_int = 0;      
+    }
+    
+    // EXCEPT Heater if cold
+    //////////////////////////////////////////////////////
+    if (t_top < Tbot_threshold) { // COLD. I.e. if heatable end cooler than lowest threshold temp
+      Heater_int = 140;  // an old setting when always on [0,255]      
+    }
+      
+    // Check temperatures and switch the BLUE FAN relay on and off.
+    // NOTE: relay LOW = ON / HIGH = OFF
+    //////////////////////////////////////////////////////
+    //if ((t_top > Ttop_threshold - 2) && (day_bool)) {
+    if ((t_bot < Ttop_threshold - 2) && (day_bool)) { // VERTICAL MIXING IF NOT TOO HOT
       digitalWrite(FAN_PIN,LOW); // Fan ON
-      //Serial.print(F("ON:day_bool:"));
-      //Serial.println(day_bool);
     }
     else {
       digitalWrite(FAN_PIN,HIGH); // Fan OFF
-      //Serial.print(F("OFF:day_bool:"));
-      //Serial.println(day_bool);
-    }      
-    if ((t_top < Ttop_threshold - 2) && (day_bool)) {
-      digitalWrite(HELIOS_RELAY_PIN,LOW); // HELEOS LED ON
-      //dimmer.setPower(50); // RBD setPower(0-100%);
-      analogWrite(HELIOS_PWM_PIN,Heater_int); //(158=62% of 255) // dimmer.set(62); // 50% until 20Mar22// 75% until 19Feb22 // intensity. Accepts values from 0 to 100.
-      //digitalWrite(FAN_PIN,LOW); // Fan ON. TESTING
-      // 50%-32C
-      //Serial.print("Dimmer intensity: ");
-      //Serial.println(dimmer.getValue());
     }
-    if ((t_top > Ttop_threshold + 2) && (day_bool)) {
+
+
+    // Check temperatures and switch the BLACK (EXIT) FAN relay on and off.
+    // NOTE: relay LOW = ON / HIGH = OFF
+    //////////////////////////////////////////////////////
+    if ((t_bot > Ttop_threshold - 5) && (day_bool)) { // EJECT HOT AIR + LIMIT IR HEATING
+      // RF transmit // Fan ON
+      mySwitch.send(1397079, 24); // Button 3: ON (found notes on Evernote: Decoding RF signal on RPi)
+      if (Heater_int > 140){  // LIMIT IR ONLY IF OVER THRESHOLD
+        Heater_int = 140;  // an old setting when always on [0,255]      
+      }
+    }
+    else {
+      // RF transmit // Fan OFF
+      mySwitch.send(1397076, 24); // Button 3: OFF
+    }
+
+    if ((t_bot > Ttop_threshold - 4) && (day_bool)) {  // TOO HOT
       digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
-      //dimmer.setPower(0); // RBD setPower(0-100%);
-      analogWrite(HELIOS_PWM_PIN,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100. 50 too much
-      //Serial.print("Dimmer intensity: ");
-      //Serial.println(dimmer.getValue());
-    }
-    if (!day_bool) {
-      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
-      //dimmer.setPower(0); // RBD setPower(0-100%);
-      analogWrite(HELIOS_PWM_PIN,0); //dimmer.set(0); // intensity. Accepts values from 0 to 100
-    }
-  
-    //Serial.print("Helios LED:");
-    //Serial.println(digitalRead(HELIOS_RELAY_PIN));
+      Heater_int = 0;                      // HELIOS IR OFF
+    }    
+
+    // Set IR heating
+    //////////////////////////////////////////////////////
+    analogWrite(HELIOS_PWM_PIN,Heater_int); 
+
     bool Fan_bool = !digitalRead(FAN_PIN);
-    bool Helios_bool = !digitalRead(HELIOS_RELAY_PIN);
-    //int Heater_int = !digitalRead(HELIOS_RELAY_PIN);
-    //uint8_t Heater_int = analogRead(HELIOS_PWM_PIN); // dimmer.getValue(); // Heater_int is actually type: int
-    //Serial.print("Heater_int: ");
-    //Serial.println(Heater_int);
-    Serial.print("Day:");
-    Serial.println(day_bool);
+    //bool Helios_bool = !digitalRead(HELIOS_RELAY_PIN);
 
 
-    // Adjust dimmer intensity. (range: 0-100)
-    ///////////////////////////////////////////////////////////
-    //dimmer.set(50); // intensity. Accepts values from 0 to 100
-    //Serial.print("Dimmer intensity: ");
-    //Serial.println(dimmer.getValue());
-  
     // Display variables on serial display
     /////////////////////////////////////////////////////////////////////////////
-    serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int*Helios_bool, Fan_bool, clock_int);
+    serial_disp(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Fan_bool, clock_int, day_bool);
 
     // Display variables on OLED display
     /////////////////////////////////////////////////////////////////////////////
-    oled(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Heater_int*Helios_bool, Fan_bool, clock_int);
+    oled(t_top, t_bot, ldr, h_top, h_bot, Ttop_threshold, Tbot_threshold, Fan_bool, clock_int, day_bool);
 
     // Transmit the top and bottom temperatures to the weather station display
     /////////////////////////////////////////////////////////////////////////////
@@ -470,10 +554,6 @@ void loop() {
     transmitter.sendTempHumi(t_top*10, t_bot);
   
   }
-
-
-
-  //delay(15000); // Pause 15s
 
  
   
