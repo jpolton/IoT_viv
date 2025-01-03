@@ -80,9 +80,10 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 #define NOON  (uint16_t) 600      // 6*100: hours*100 since SUNRISE to NOON
 
 // CAN INITIALISE START HOUR*100 SINCE SUNRISE HERE.
-uint16_t clock_int = 0 ; //660; //0; // clock "loop" counter. 100 per hr. range[0:1200]
+uint16_t clock_int = 350; //660; //0; // clock "loop" counter. 100 per hr. range[0:1200]
 
 boolean day_bool = 0; // day->true, night->false
+boolean helios_relay_bool = 1; // false->ON, true->OFF. HELIOS LED switching
 
 float Tbot_threshold = 0; // initialise
 float Ttop_threshold = 0;
@@ -118,7 +119,8 @@ void setup() {
   digitalWrite(FAN_PIN,HIGH); // Fan OFF
   pinMode(FAN_PIN, OUTPUT);
   
-  digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
+  //digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
+  digitalWrite(HELIOS_RELAY_PIN,helios_relay_bool); // HELEOS LED OFF
   pinMode(HELIOS_RELAY_PIN, OUTPUT);
   
   pinMode(HELIOS_PWM_PIN, OUTPUT);
@@ -391,12 +393,14 @@ void HELIOS_val(int clock_int)
     // leds only turn on in range 120 - 255
     // 120 didn't seem to fire on every, though ok on nano // OLD NOTES
     if (clock_int < NOON) { // Ramp up to NOON: [0-255]
-      Heater_int = int(clock_int * 0.425);  // (255 / 600) = 0.425  ms->mins over 6hrs scaling from 0:255
+      //Heater_int = int(clock_int * 0.425);  // (255 / 600) = 0.425  ms->mins over 6hrs scaling from 0:255
+      Heater_int = int(100 + clock_int * 0.258);  // (155 / 600) = 0.258  ms->mins over 6hrs scaling from 0:255
       //Serial.println(F("A.M."));
     } 
     else {  // Ramp down from NOON: [255-0] 
       //Heater_int = int((NOON + NOON - millis() + time_sunrise)/float(NOON)*255);
-      Heater_int = int((NOON + NOON - clock_int) * 0.425); //  scaling over 6hrs scaling from 255:0
+      //Heater_int = int((NOON + NOON - clock_int) * 0.425); //  scaling over 6hrs scaling from 255:0
+      Heater_int = int(100 + (NOON + NOON - clock_int) * 0.258); //  scaling over 6hrs scaling from 255:0
       //Heater_int = (NOON + NOON - millis() + time_sunrise) / 84705;  // (60000 / 255 * 6*60) = 84,705  ms->mins over 6hrs scaling from 255:0
       //Serial.println(F("P.M."));
     }
@@ -471,11 +475,13 @@ void loop() {
     // NOTE: relay LOW = ON / HIGH = OFF
     //////////////////////////////////////////////////////
     if((clock_int > MID_AM) && (clock_int < MID_PM)) {
-      digitalWrite(HELIOS_RELAY_PIN,LOW); // HELEOS LED ON
+      //digitalWrite(HELIOS_RELAY_PIN,LOW); // HELEOS LED ON
+      helios_relay_bool = 0; // HELEOS LED ON
       Serial.println(F("LIGHTS ON."));
     }
     else {
-      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
+      //digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELEOS LED OFF
+      helios_relay_bool = 1; // HELEOS LED OFF
       Serial.println(F("LIGHTS OFF."));
     }
     Serial.println(clock_int > MID_AM);
@@ -496,7 +502,7 @@ void loop() {
     // EXCEPT Heater if cold
     //////////////////////////////////////////////////////
     if (t_top < Tbot_threshold) { // COLD. I.e. if heatable end cooler than lowest threshold temp
-      Heater_int = 140;  // an old setting when always on [0,255]      
+      Heater_int = max(140, Heater_int);  // an old setting when always on [0,255]      
     }
       
     // Check temperatures and switch the BLUE FAN relay on and off.
@@ -527,13 +533,16 @@ void loop() {
     }
 
     if ((t_bot > Ttop_threshold - 4) && (day_bool)) {  // TOO HOT
-      digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
+      //digitalWrite(HELIOS_RELAY_PIN,HIGH); // HELIOS LED OFF
+      helios_relay_bool = 1;               // HELEOS LED OFF
       Heater_int = 0;                      // HELIOS IR OFF
     }    
 
-    // Set IR heating
+    // Set HELIOS Values
     //////////////////////////////////////////////////////
-    analogWrite(HELIOS_PWM_PIN,Heater_int); 
+    analogWrite(HELIOS_PWM_PIN,Heater_int);           // HELIOS IR HEATER
+    digitalWrite(HELIOS_RELAY_PIN,helios_relay_bool); // HELIOS LED
+ 
 
     bool Fan_bool = !digitalRead(FAN_PIN);
     //bool Helios_bool = !digitalRead(HELIOS_RELAY_PIN);
